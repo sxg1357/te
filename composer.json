@@ -1,0 +1,17 @@
+{
+    "name": "socket/ms",
+    "description": "the socket library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Socket\\Ms\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "sxg",
+            "email": "1353693123@qq.com"
+        }
+    ],
+    "require": {}
+}
