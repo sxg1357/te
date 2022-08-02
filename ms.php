@@ -12,3 +12,5 @@ $server = new Socket\Ms\Server("tcp://127.0.0.1:9501");
 
 $server->listen();
 $server->accept();
+$server->eventLoop();
+

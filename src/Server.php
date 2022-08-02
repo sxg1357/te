@@ -27,6 +27,37 @@ class Server {
         }
     }
 
+    public function eventLoop() {
+        while (1) {
+            $readFds[] = $this->_socket;
+            $writeFds = [];
+            $expFds = [];
+            if (!empty(self::$_connections)) {
+                foreach (self::$_connections as $idx => $fd) {
+                    $readFds[] = $fd;
+                    $writeFds[] = $fd;
+                }
+            }
+            $ret = stream_select($readFds, $writeFds, $expFds, NULL);
+            if ($ret == false) {
+                break;
+            }
+            if ($readFds) {
+                foreach ($readFds as $fd) {
+                    if ($fd == $this->_socket) {
+                        $this->accept();
+                    } else {
+                        $data = fread($fd, 1024);
+                        fprintf(STDOUT, "recv data:%s from %s\n", $data, (int)$fd);
+                        if ($data) {
+                            fwrite($fd, "hello world\n");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public function accept() {
         $connId = stream_socket_accept($this->_socket, -1);
         if (is_resource($connId)) {
