@@ -41,25 +41,22 @@ class Server {
             $expFds = [];
             if (!empty(self::$_connections)) {
                 foreach (self::$_connections as $idx => $connection) {
-                    $readFds[] = $connection->_connId;
-                    $writeFds[] = $connection->_connId;
+                    $readFds[] = $connection->_socketFd;
+                    $writeFds[] = $connection->_socketFd;
                 }
             }
             $ret = stream_select($readFds, $writeFds, $expFds, NULL);
-            if ($ret == false) {
+            if ($ret === false) {
                 break;
             }
             if ($readFds) {
                 foreach ($readFds as $fd) {
                     if ($fd == $this->_socket) {
                         $this->accept();
-                    } else {
-                        $data = fread($fd, 1024);
-                        fprintf(STDOUT, "recv data:%s from %s\n", $data, (int)$fd);
-                        if ($data) {
-                            fwrite($fd, "hello world\n");
-                        }
                     }
+                    /**@var TcpConnections $connection */
+                    $connection = self::$_connections[(int)$fd];
+                    $connection->recvSocket();
                 }
             }
         }
@@ -68,11 +65,11 @@ class Server {
     public function accept() {
         $connId = stream_socket_accept($this->_socket, -1, $peer_name);
         if (is_resource($connId)) {
-            $connection = new TcpConnections($this->_socket, $peer_name, $connId);
+            $connection = new TcpConnections($connId, $peer_name);
             self::$_connections[(int)($connId)] = $connection;
             fprintf(STDOUT, "connect success connId:%s\n", $connId);
-            if (isset($this->_events["connection"]) && is_callable($this->_events["connection"])) {
-                $this->_events["connection"]($this, $connection);
+            if (isset($this->_events["connect"]) && is_callable($this->_events["connect"])) {
+                $this->_events["connect"]($this, $connection);
             }
         }
     }
