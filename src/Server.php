@@ -65,7 +65,7 @@ class Server {
 
     public function eventCallBak($eventName, $args = []) {
         if (isset($this->_events[$eventName]) && is_callable($this->_events[$eventName])) {
-            $this->_events[$eventName]($this, ...$args);
+            $this->_events[$eventName](...$args);
         }
     }
 
@@ -75,7 +75,7 @@ class Server {
             $connection = new TcpConnections($connId, $peer_name, $this);
             self::$_connections[(int)($connId)] = $connection;
             fprintf(STDOUT, "connect success connId:%s\n", $connId);
-            $this->eventCallBak("connect", [$connection]);
+            $this->eventCallBak("connect", [$this, $connection]);
         }
     }
 }

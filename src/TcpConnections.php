@@ -24,7 +24,7 @@ class TcpConnections {
         if ($data) {
             /** @var Server $server */
             $server = $this->_server;
-            $server->eventCallBak("receive", [$server, $data, $this]);
+            $server->eventCallBak("receive", [$data, $this]);
         }
     }
 
