@@ -53,10 +53,17 @@ class Server {
                 foreach ($readFds as $fd) {
                     if ($fd == $this->_socket) {
                         $this->accept();
+                    } else {
+//                        $data = fread($fd, 1024);
+//                        if ($data) {
+//                            fprintf(STDOUT, "data:%s\n", $data);
+//                            fwrite($fd, "hello world");
+//                        }
+                        /**@var TcpConnections $connection */
+                        $connection = self::$_connections[(int)$fd];
+                        fprintf(STDOUT, "fd:%s\n", (int)$fd);
+                        $connection->recvSocket();
                     }
-                    /**@var TcpConnections $connection */
-                    $connection = self::$_connections[(int)$fd];
-                    $connection->recvSocket();
                 }
             }
         }
