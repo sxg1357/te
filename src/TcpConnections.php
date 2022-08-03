@@ -11,19 +11,26 @@ namespace Socket\Ms;
 class TcpConnections {
     public $_socketFd;
     public $_clientIp;
+    public $_server;
 
-    public function __construct($socketFd, $clientIp) {
+    public function __construct($socketFd, $clientIp, $server) {
         $this->_socketFd = $socketFd;
         $this->_clientIp = $clientIp;
+        $this->_server = $server;
     }
 
     public function recvSocket() {
         $data = fread($this->_socketFd, 1024);
-        //这里需要做一个校验 不然fwrite会处于阻塞状态
         if ($data) {
-            fprintf(STDOUT, "recv data:%s from client\n", $data);
-            fwrite($this->_socketFd, "hello world\n");
+            /** @var Server $server */
+            $server = $this->_server;
+            $server->eventCallBak("receive", [$server, $data, $this]);
         }
+    }
 
+    public function writeSocket($fd, $data) {
+        $len = strlen($data);
+        fwrite($fd, $data, $len);
+        fprintf(STDOUT, "server write %s bytes\n", $len);
     }
 }

@@ -54,14 +54,8 @@ class Server {
                     if ($fd == $this->_socket) {
                         $this->accept();
                     } else {
-//                        $data = fread($fd, 1024);
-//                        if ($data) {
-//                            fprintf(STDOUT, "data:%s\n", $data);
-//                            fwrite($fd, "hello world");
-//                        }
                         /**@var TcpConnections $connection */
                         $connection = self::$_connections[(int)$fd];
-                        fprintf(STDOUT, "fd:%s\n", (int)$fd);
                         $connection->recvSocket();
                     }
                 }
@@ -69,15 +63,19 @@ class Server {
         }
     }
 
+    public function eventCallBak($eventName, $args = []) {
+        if (isset($this->_events[$eventName]) && is_callable($this->_events[$eventName])) {
+            $this->_events[$eventName]($this, ...$args);
+        }
+    }
+
     public function accept() {
         $connId = stream_socket_accept($this->_socket, -1, $peer_name);
         if (is_resource($connId)) {
-            $connection = new TcpConnections($connId, $peer_name);
+            $connection = new TcpConnections($connId, $peer_name, $this);
             self::$_connections[(int)($connId)] = $connection;
             fprintf(STDOUT, "connect success connId:%s\n", $connId);
-            if (isset($this->_events["connect"]) && is_callable($this->_events["connect"])) {
-                $this->_events["connect"]($this, $connection);
-            }
+            $this->eventCallBak("connect", [$connection]);
         }
     }
 }
