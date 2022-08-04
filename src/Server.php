@@ -46,11 +46,17 @@ class Server {
             $expFds = [];
             if (!empty(self::$_connections)) {
                 foreach (self::$_connections as $idx => $connection) {
-                    $readFds[] = $connection->_socketFd;
-                    $writeFds[] = $connection->_socketFd;
+                    $socket_fd = $connection->_socketFd;
+                    if (is_resource($socket_fd)) {
+                        $readFds[] = $socket_fd;
+                        $writeFds[] = $socket_fd;
+                    }
+
                 }
             }
+            set_error_handler(function (){});
             $ret = stream_select($readFds, $writeFds, $expFds, NULL);
+            restore_error_handler();
             if ($ret === false) {
                 break;
             }

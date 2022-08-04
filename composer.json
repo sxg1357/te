@@ -13,5 +13,8 @@
             "email": "1353693123@qq.com"
         }
     ],
-    "require": {}
+    "require": {
+      "ext-sockets": "*",
+      "ext-pcntl": "*"
+    }
 }
