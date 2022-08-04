@@ -15,7 +15,7 @@ class Server {
     public $_events = [];
 
 
-    public function on($eventName, $eventCall) {
+    public function on($eventName, callable $eventCall) {
         $this->_events[$eventName] = $eventCall;
     }
 
@@ -32,6 +32,11 @@ class Server {
             fprintf(STDOUT, "socket create fail:%s\n", $error_message);
             exit(0);
         }
+    }
+
+    public function start() {
+        $this->listen();
+        $this->eventLoop();
     }
 
     public function eventLoop() {

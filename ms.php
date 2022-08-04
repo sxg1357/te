@@ -8,16 +8,25 @@
 
 require_once "vendor/autoload.php";
 
-$server = new Socket\Ms\Server("tcp://127.0.0.1:9501");
 
-$server->on("connect", function (\Socket\Ms\Server $Server, \Socket\Ms\TcpConnections $TcpConnections) {
-    fprintf(STDOUT, "有客户端连接了\n");
-});
-$server->on("receive", function (\Socket\Ms\Server $Server, $msg, \Socket\Ms\TcpConnections $connections) {
-    fprintf(STDOUT, "有客户发送数据:%s\n", $msg);
-    $connections->writeSocket($connections->_socketFd, $msg);
-});
+class ms {
+    private $_server;
+    public function __construct() {
+        $this->_server = new Socket\Ms\Server("tcp://127.0.0.1:9501");
+        $this->_server->on("connect", [$this, 'onConnect']);
+        $this->_server->on("receive", [$this, 'onReceive']);
+        $this->_server->start();
+    }
 
-$server->listen();
-$server->eventLoop();
+    public function onConnect(Socket\Ms\Server $Server, Socket\Ms\TcpConnections $TcpConnections) {
+        fprintf(STDOUT, "有客户端连接了\n");
+    }
+
+    public function onReceive(Socket\Ms\Server $Server, $msg, Socket\Ms\TcpConnections $connections) {
+        fprintf(STDOUT, "有客户发送数据:%s\n", $msg);
+        $connections->writeSocket($connections->_socketFd, $msg);
+    }
+}
+
+$ms = new ms();
 
