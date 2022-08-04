@@ -21,6 +21,14 @@ class TcpConnections {
 
     public function recvSocket() {
         $data = fread($this->_socketFd, 1024);
+        if ($data === '' || $data === false) {
+            if (feof($this->_socketFd) || !is_resource($this->_socketFd)) {
+                fclose($this->_socketFd);
+                /**@var Server $server*/
+                $server = $this->_server;
+                $server->eventCallBak("close", [$this]);
+            }
+        }
         if ($data) {
             /** @var Server $server */
             $server = $this->_server;

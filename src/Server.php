@@ -74,6 +74,12 @@ class Server {
         }
     }
 
+    public function onClientLeave($socket_fd) {
+        if (isset(self::$_connections[(int)$socket_fd])) {
+            unset(self::$_connections[(int)$socket_fd]);
+        }
+    }
+
     public function accept() {
         $connId = stream_socket_accept($this->_socket, -1, $peer_name);
         if (is_resource($connId)) {
