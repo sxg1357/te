@@ -14,9 +14,10 @@ class TcpConnections {
     public $_server;
 
     public $_readBufferSize = 1024;
-    public $_recvBufferSize = 1024 * 100;     //接收缓冲区字节数大小
+    public $_recvBufferSize = 1024 * 100;     //当前连接接收缓冲区字节数大小
     public $_recvLen = 0;           //当前连接目前接受到的字节数
     public $_recvBufferFull = 0;    //当前连接是否超出接收缓冲区
+    public $_recvBuffer = '';
 
 
     public function __construct($socketFd, $clientIp, $server) {
@@ -26,16 +27,27 @@ class TcpConnections {
     }
 
     public function recvSocket() {
-        $data = fread($this->_socketFd, $this->_readBufferSize);
-        if ($data === '' || $data === false) {
-            if (feof($this->_socketFd) || !is_resource($this->_socketFd)) {
-                $this->close();
+        if ($this->_recvLen < $this->_readBufferSize) {
+            $data = fread($this->_socketFd, $this->_readBufferSize);
+            if ($data === '' || $data === false) {
+                if (feof($this->_socketFd) || !is_resource($this->_socketFd)) {
+                    $this->close();
+                }
+            } else {
+                //把接收到的数据放在接收缓冲区
+                $this->_recvBuffer .= $data;
+                $this->_recvLen += strlen($data);
+//                /** @var Server $server */
+//                $server = $this->_server;
+//                $server->eventCallBak("receive", [$data, $this]);
             }
-        }
-        if ($data) {
-            /** @var Server $server */
-            $server = $this->_server;
-            $server->eventCallBak("receive", [$data, $this]);
+            if ($this->_recvLen > 0) {
+
+            }
+
+
+        } else {
+            $this->_recvBufferFull++;
         }
     }
 
