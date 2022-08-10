@@ -15,6 +15,7 @@
     ],
     "require": {
       "ext-sockets": "*",
-      "ext-pcntl": "*"
+      "ext-pcntl": "*",
+      "ext-mbstring": "*"
     }
 }

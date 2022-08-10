@@ -14,13 +14,59 @@ class Server {
     public static $_connections = [];
     public $_events = [];
 
+    public $_protocol = null;
+    public $_protocol_layout;
+
+    static public $_clientNum = 0;
+    static public $_recvNum = 0;
+    static public $_msgNum = 0;
+
+    public $_starttime;
+
+    public $_protocols = [
+        "stream" => "Socket\Ms\Protocols\Stream",
+        "text" => "",
+        "websocket" => "",
+        "http" => "",
+        "mqtt" => ""
+    ];
+
 
     public function on($eventName, callable $eventCall) {
         $this->_events[$eventName] = $eventCall;
     }
 
     public function __construct($address) {
-        $this->_address = $address;
+        list($protocol, $ip, $port) =explode(":", $address);
+        if (isset($this->_protocols[$protocol])) {
+            $this->_protocol = new $this->_protocols[$protocol]();
+        }
+        $this->_starttime = time();
+        $this->_address = "tcp:$ip:$port";
+    }
+
+    public function onClientJoin() {
+        self::$_clientNum++;
+    }
+
+    public function onRecv() {
+        self::$_recvNum++;
+    }
+
+    public function onMsg() {
+        self::$_msgNum++;
+    }
+
+    public function statistics() {
+        $nowTime = time();
+        $diffTime = $nowTime - $this->_starttime;
+        $this->_starttime = $nowTime;
+        if ($diffTime >= 1) {
+            fprintf(STDOUT,"time:<%s>--socket<%d>--<clientNum:%d>--<recvNum:%d>--<msgNum:%d>\r\n",
+                $diffTime, (int)$this->_socket, static::$_clientNum, static::$_recvNum, static::$_msgNum);
+            static::$_recvNum = 0;
+            static::$_msgNum = 0;
+        }
     }
 
     public function listen() {
@@ -44,6 +90,9 @@ class Server {
             $readFds[] = $this->_socket;
             $writeFds = [];
             $expFds = [];
+
+            $this->statistics();
+
             if (!empty(self::$_connections)) {
                 foreach (self::$_connections as $idx => $connection) {
                     $socket_fd = $connection->_socketFd;
@@ -51,7 +100,6 @@ class Server {
                         $readFds[] = $socket_fd;
                         $writeFds[] = $socket_fd;
                     }
-
                 }
             }
             set_error_handler(function (){});
@@ -84,12 +132,14 @@ class Server {
         if (isset(self::$_connections[(int)$socket_fd])) {
             unset(self::$_connections[(int)$socket_fd]);
         }
+        self::$_clientNum--;
     }
 
     public function accept() {
         $connId = stream_socket_accept($this->_socket, -1, $peer_name);
         if (is_resource($connId)) {
             $connection = new TcpConnections($connId, $peer_name, $this);
+            $this->onClientJoin();
             self::$_connections[(int)($connId)] = $connection;
             fprintf(STDOUT, "connect success connId:%s\n", $connId);
             $this->eventCallBak("connect", [$connection]);

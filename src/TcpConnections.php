@@ -19,6 +19,11 @@ class TcpConnections {
     public $_recvBufferFull = 0;    //当前连接是否超出接收缓冲区
     public $_recvBuffer = '';
 
+    public $_sendLen = 0;
+    public $_sendBuffer = '';
+    public $_sendBufferSize = 1024 * 1000;
+    public $_sendBufferFull = 0;
+
 
     public function __construct($socketFd, $clientIp, $server) {
         $this->_socketFd = $socketFd;
@@ -37,17 +42,35 @@ class TcpConnections {
                 //把接收到的数据放在接收缓冲区
                 $this->_recvBuffer .= $data;
                 $this->_recvLen += strlen($data);
-//                /** @var Server $server */
-//                $server = $this->_server;
-//                $server->eventCallBak("receive", [$data, $this]);
+                $this->_server->onRecv();
             }
-            if ($this->_recvLen > 0) {
-
-            }
-
-
         } else {
             $this->_recvBufferFull++;
+        }
+        if ($this->_recvLen > 0) {
+            $this->handleMessage();
+        }
+    }
+
+    public function handleMessage() {
+        /**@var server $server*/
+        $server = $this->_server;
+
+        if (is_object($server->_protocol) && $server->_protocol !== null) {
+            while ($server->_protocol->Len($this->_recvBuffer)) {
+                $msgLen = $server->_protocol->msgLen($this->_recvBuffer);
+                $oneMsg = mb_substr($this->_recvBuffer, 0, $msgLen);
+                $this->_recvLen -= $msgLen;
+                $this->_recvBufferFull--;
+                $server->onMsg();
+                $message = $server->_protocol->decode($oneMsg);
+                $server->eventCallBak("receive", [$message, $this]);
+            }
+        } else {
+            $server->eventCallBak("receive", [$this->_recvBuffer, $this]);
+            $this->_recvBufferFull = 0;
+            $this->_recvLen = 0;
+            $this->_recvBuffer = '';
         }
     }
 
@@ -58,6 +81,42 @@ class TcpConnections {
         /**@var Server $server*/
         $server = $this->_server;
         $server->eventCallBak("close", [$this]);
+        $server->onClientLeave($this->_socketFd);
+    }
+
+    public function send($data) {
+        $len = strlen($data);
+
+        $server = $this->_server;
+        if ($this->_sendLen + $len < $this->_sendBufferSize) {
+            if (is_object($server->_protocol) && $server->_protocol !== null) {
+                $bin = $this->_server->_protocol->encode($data);
+                $this->_sendBuffer .= $bin[1];
+                $this->_sendLen += $bin[0];
+            } else {
+                $this->_sendBuffer .= $data;
+                $this->_sendLen += $len;
+            }
+
+            if ($this->_sendLen>=$this->_sendBufferSize){
+                $this->_sendBufferFull++;
+            }
+        }
+
+        $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
+        if ($writeLen == $this->_sendLen){
+            $this->_sendBuffer = '';
+            $this->_sendLen=0;
+            $this->_sendBufferFull=0;
+            return true;
+        }
+        else if ($writeLen > 0) {
+            $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
+            $this->_sendLen -= $writeLen;
+            $this->_sendBufferFull--;
+        } else {
+            $this->Close();
+        }
     }
 
     public function writeSocket($fd, $data) {
