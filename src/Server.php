@@ -78,6 +78,7 @@ class Server {
             fprintf(STDOUT, "socket create fail:%s\n", $error_message);
             exit(0);
         }
+        fprintf(STDOUT,"listen on:%s\n", $this->_address);
     }
 
     public function start() {

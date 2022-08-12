@@ -60,6 +60,7 @@ class TcpConnections {
             while ($server->_protocol->Len($this->_recvBuffer)) {
                 $msgLen = $server->_protocol->msgLen($this->_recvBuffer);
                 $oneMsg = mb_substr($this->_recvBuffer, 0, $msgLen);
+                $this->_recvBuffer = mb_substr($this->_recvBuffer, $msgLen);
                 $this->_recvLen -= $msgLen;
                 $this->_recvBufferFull--;
                 $server->onMsg();
@@ -98,13 +99,13 @@ class TcpConnections {
                 $this->_sendLen += $len;
             }
 
-            if ($this->_sendLen>=$this->_sendBufferSize){
+            if ($this->_sendLen>=$this->_sendBufferSize) {
                 $this->_sendBufferFull++;
             }
         }
 
         $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
-        if ($writeLen == $this->_sendLen){
+        if ($writeLen == $this->_sendLen) {
             $this->_sendBuffer = '';
             $this->_sendLen=0;
             $this->_sendBufferFull=0;
@@ -115,7 +116,7 @@ class TcpConnections {
             $this->_sendLen -= $writeLen;
             $this->_sendBufferFull--;
         } else {
-            $this->Close();
+            $this->close();
         }
     }
 
