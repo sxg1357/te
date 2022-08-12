@@ -6,7 +6,7 @@
  * Time: 9:56
  */
 
-require_once "vendor\autoload.php";
+require_once "vendor/autoload.php";
 
 $client = new \Socket\Ms\Client("tcp://127.0.0.1:9501");
 

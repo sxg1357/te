@@ -56,7 +56,9 @@ class Client {
             $writeFds[] = $this->_socket;
             $expFds[] = $this->_socket;
 
+            set_error_handler(function (){});
             $ret = stream_select($readFds, $writeFds, $expFds, NULL, NULL);
+            restore_error_handler();
             if ($ret === false) {
                 break;
             }
