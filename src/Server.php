@@ -104,6 +104,7 @@ class Server {
                 }
             }
             set_error_handler(function (){});
+            //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
             $ret = stream_select($readFds, $writeFds, $expFds, NULL);
             restore_error_handler();
             if ($ret === false) {
