@@ -37,7 +37,7 @@ class Server {
     }
 
     public function __construct($address) {
-        list($protocol, $ip, $port) =explode(":", $address);
+        list($protocol, $ip, $port) = explode(":", $address);
         if (isset($this->_protocols[$protocol])) {
             $this->_protocol = new $this->_protocols[$protocol]();
         }

@@ -30,7 +30,7 @@ class Stream implements Protocols {
     public function encode($data = '')
     {
         // TODO: Implement encode() method.
-        $totalLen =strlen($data) + 6;
+        $totalLen = strlen($data) + 6;
         $bin = pack("Nn", $totalLen, '1') . $data;
         return [$totalLen, $bin];
     }

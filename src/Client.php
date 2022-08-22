@@ -43,7 +43,6 @@ class Client {
         $this->_socket = stream_socket_client($this->_address, $error_code, $error_message);
         if (is_resource($this->_socket)) {
             $this->eventCallBak("connect");
-            $this->eventLoop();
         } else {
             $this->eventCallBak("error", [$error_code, $error_message]);
             exit(0);
@@ -51,21 +50,21 @@ class Client {
     }
 
     public function eventLoop() {
-        while (1) {
+        if (is_resource($this->_socket)) {
             $readFds[] = $this->_socket;
             $writeFds[] = $this->_socket;
             $expFds[] = $this->_socket;
-
-            set_error_handler(function (){});
-            $ret = stream_select($readFds, $writeFds, $expFds, NULL, NULL);
-            restore_error_handler();
-            if ($ret === false) {
-                break;
-            }
-            if ($readFds) {
-                $this->recvSocket();
-            }
         }
+        set_error_handler(function (){});
+        $ret = stream_select($readFds, $writeFds, $expFds, NULL, NULL);
+        restore_error_handler();
+        if ($ret <= 0 || $ret === false) {
+            return false;
+        }
+        if ($readFds) {
+            $this->recvSocket();
+        }
+        return true;
     }
 
     public function close() {

@@ -11,7 +11,7 @@ require_once "vendor/autoload.php";
 $client = new \Socket\Ms\Client("tcp://127.0.0.1:9501");
 
 $client->on("connect", function (\Socket\Ms\Client $client) {
-    $client->writeSocket("hellox");
+//    $client->writeSocket("hellox");
 });
 
 $client->on("error", function (\Socket\Ms\Client $client, $error_code, $error_message) {
@@ -20,7 +20,7 @@ $client->on("error", function (\Socket\Ms\Client $client, $error_code, $error_me
 
 $client->on("receive", function (\Socket\Ms\Client $client, $msg) {
     fprintf(STDOUT, "recv from server %s\n", $msg);
-    $client->writeSocket($msg);
+//    $client->writeSocket($msg);
 });
 
 
@@ -29,5 +29,12 @@ $client->on("close", function (\Socket\Ms\Client $client) {
 });
 
 $client->start();
+
+while (1) {
+    $client->writeSocket("hello server\n");
+    if (!$client->eventLoop()) {
+        break;
+    }
+}
 
 

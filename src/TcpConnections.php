@@ -99,7 +99,7 @@ class TcpConnections {
                 $this->_sendLen += $len;
             }
 
-            if ($this->_sendLen>=$this->_sendBufferSize) {
+            if ($this->_sendLen >= $this->_sendBufferSize) {
                 $this->_sendBufferFull++;
             }
         }
@@ -107,8 +107,8 @@ class TcpConnections {
         $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
         if ($writeLen == $this->_sendLen) {
             $this->_sendBuffer = '';
-            $this->_sendLen=0;
-            $this->_sendBufferFull=0;
+            $this->_sendLen = 0;
+            $this->_sendBufferFull = 0;
             return true;
         }
         else if ($writeLen > 0) {
