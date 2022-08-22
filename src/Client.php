@@ -20,9 +20,27 @@ class Client {
     public $_recvBufferFull = 0;    //当前连接是否超出接收缓冲区
     public $_recvBuffer = '';
 
+    public $_sendLen = 0;
+    public $_sendBuffer = '';
+    public $_sendBufferSize = 1024 * 1000;
+    public $_sendBufferFull = 0;
+
     public $_protocol;
     public $_address;
 
+    public $_sendNum = 0;
+    public $_sendMsgNum = 0;
+
+
+    public function onSendWrite()
+    {
+        ++$this->_sendNum;
+    }
+
+    public function onSendMsg()
+    {
+        ++$this->_sendMsgNum;
+    }
 
     public function on($eventName, callable $eventCall) {
         $this->_events[$eventName] = $eventCall;
@@ -49,7 +67,8 @@ class Client {
         }
     }
 
-    public function eventLoop() {
+    public function eventLoop(): bool
+    {
         if (is_resource($this->_socket)) {
             $readFds[] = $this->_socket;
             $writeFds[] = $this->_socket;
@@ -64,12 +83,29 @@ class Client {
         if ($readFds) {
             $this->recvSocket();
         }
+
+        if ($writeFds) {
+            $this->writeSocket();
+        }
         return true;
     }
 
     public function close() {
         fclose($this->_socket);
         $this->eventCallBak("close");
+    }
+
+    public function send($data) {
+        $len = strlen($data);
+        if ($this->_sendLen + $len < $this->_sendBufferSize) {
+            $bin = $this->_protocol->encode($data);
+            $this->_sendBuffer .= $bin[1];
+            $this->_sendLen += $bin[0];
+            if ($this->_sendLen >= $this->_sendBufferSize) {
+                $this->_sendBufferFull++;
+            }
+            $this->onSendMsg();
+        }
     }
 
     public function recvSocket() {
@@ -88,10 +124,27 @@ class Client {
         }
     }
 
-    public function writeSocket($data) {
-        $bin =$this->_protocol->encode($data);
-        $writeLen = fwrite($this->_socket, $bin[1], $bin[0]);
-        fprintf(STDOUT, "client write %s bytes\n", $writeLen);
+    public function needWrite(): bool
+    {
+        return $this->_sendLen > 0;
+    }
+
+    public function writeSocket(): bool
+    {
+        if ($this->needWrite()) {
+            $writeLen = fwrite($this->_socket, $this->_sendBuffer, $this->_sendLen);
+            $this->onSendWrite();
+            if ($writeLen == $this->_sendLen) {
+                $this->_sendBuffer = '';
+                $this->_sendLen = 0;
+                return true;
+            } elseif ($this->_sendLen > 0) {
+                $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
+                $this->_sendLen -= $writeLen;
+            } else {
+                $this->close();
+            }
+        }
     }
 
     public function handleMessage() {

@@ -85,9 +85,14 @@ class TcpConnections {
         $server->onClientLeave($this->_socketFd);
     }
 
-    public function send($data) {
-        $len = strlen($data);
+    public function needWrite(): bool
+    {
+        return $this->_sendLen > 0;
+    }
 
+    public function send($data): bool
+    {
+        $len = strlen($data);
         $server = $this->_server;
         if ($this->_sendLen + $len < $this->_sendBufferSize) {
             if (is_object($server->_protocol) && $server->_protocol !== null) {
@@ -103,26 +108,23 @@ class TcpConnections {
                 $this->_sendBufferFull++;
             }
         }
-
-        $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
-        if ($writeLen == $this->_sendLen) {
-            $this->_sendBuffer = '';
-            $this->_sendLen = 0;
-            $this->_sendBufferFull = 0;
-            return true;
-        }
-        else if ($writeLen > 0) {
-            $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
-            $this->_sendLen -= $writeLen;
-            $this->_sendBufferFull--;
-        } else {
-            $this->close();
-        }
     }
 
-    public function writeSocket($fd, $data) {
-        $len = strlen($data);
-        fwrite($fd, $data, $len);
-        fprintf(STDOUT, "server write %s bytes\n", $len);
+    public function writeSocket($fd, $data): bool
+    {
+        if ($this->needWrite()) {
+            $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
+            if ($writeLen == $this->_sendLen) {
+                $this->_sendBuffer = '';
+                $this->_sendLen = 0;
+                return true;
+            }
+            else if ($writeLen > 0) {
+                $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
+                $this->_sendLen -= $writeLen;
+            } else {
+                $this->close();
+            }
+        }
     }
 }
