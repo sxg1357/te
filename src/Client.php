@@ -73,21 +73,25 @@ class Client {
             $readFds[] = $this->_socket;
             $writeFds[] = $this->_socket;
             $expFds[] = $this->_socket;
-        }
-        set_error_handler(function (){});
-        $ret = stream_select($readFds, $writeFds, $expFds, NULL, NULL);
-        restore_error_handler();
-        if ($ret <= 0 || $ret === false) {
+
+            set_error_handler(function () {});
+            $ret = stream_select($readFds, $writeFds, $expFds, NULL, NULL);
+            restore_error_handler();
+            if ($ret <= 0 || $ret === false) {
+                return false;
+            }
+
+            if ($readFds) {
+                $this->recvSocket();
+            }
+
+            if ($writeFds) {
+                $this->writeSocket();
+            }
+            return true;
+        } else {
             return false;
         }
-        if ($readFds) {
-            $this->recvSocket();
-        }
-
-        if ($writeFds) {
-            $this->writeSocket();
-        }
-        return true;
     }
 
     public function close() {
@@ -138,7 +142,7 @@ class Client {
                 $this->_sendBuffer = '';
                 $this->_sendLen = 0;
                 return true;
-            } elseif ($this->_sendLen > 0) {
+            } else if ($writeLen > 0) {
                 $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
                 $this->_sendLen -= $writeLen;
             } else {

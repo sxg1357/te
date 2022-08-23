@@ -62,7 +62,6 @@ class TcpConnections {
                 $oneMsg = mb_substr($this->_recvBuffer, 0, $msgLen);
                 $this->_recvBuffer = mb_substr($this->_recvBuffer, $msgLen);
                 $this->_recvLen -= $msgLen;
-                $this->_recvBufferFull--;
                 $server->onMsg();
                 $message = $server->_protocol->decode($oneMsg);
                 $server->eventCallBak("receive", [$message, $this]);
@@ -110,7 +109,7 @@ class TcpConnections {
         }
     }
 
-    public function writeSocket($fd, $data): bool
+    public function writeSocket(): bool
     {
         if ($this->needWrite()) {
             $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
