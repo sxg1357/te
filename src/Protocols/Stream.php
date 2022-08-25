@@ -42,7 +42,7 @@ class Stream implements Protocols {
     public function decode($data = '')
     {
         // TODO: Implement decode() method.
-        return mb_substr($data, 6);
+        return substr($data, 6);
     }
 
 

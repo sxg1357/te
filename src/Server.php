@@ -71,7 +71,7 @@ class Server {
 
     public function listen() {
         $flags = STREAM_SERVER_LISTEN|STREAM_SERVER_BIND;
-        $option['socket']['backlog'] = 102400;
+        $option['socket']['backlog'] = 102400;   //ulimit -a
         $context = stream_context_create($option);    //setsocketopt
         $this->_socket = stream_socket_server($this->_address, $error_code, $error_message, $flags, $context);
         if (!is_resource($this->_socket)) {
@@ -93,7 +93,7 @@ class Server {
             $writes = [];
             $exps = [];
 
-//            $this->statistics();
+            $this->statistics();
 
             if (!empty(self::$_connections)) {
                 foreach (self::$_connections as $idx => $connection) {
@@ -125,15 +125,15 @@ class Server {
                 }
             }
 
-//            if ($writeFds) {
-//                foreach ($writeFds as $fd) {
-//                    if (isset(self::$_connections[(int)$fd])) {
-//                        /**@var TcpConnections $connection*/
-//                        $connection = self::$_connections[(int)$fd];
-//                        $connection->writeSocket();
-//                    }
-//                }
-//            }
+            if ($writes) {
+                foreach ($writes as $fd) {
+                    if (isset(self::$_connections[(int)$fd])) {
+                        /**@var TcpConnections $connection*/
+                        $connection = self::$_connections[(int)$fd];
+                        $connection->writeSocket();
+                    }
+                }
+            }
         }
     }
 

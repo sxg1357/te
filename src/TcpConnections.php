@@ -19,6 +19,7 @@ class TcpConnections {
     public $_recvBufferFull = 0;    //当前连接是否超出接收缓冲区
     public $_recvBuffer = '';
 
+
     public $_sendLen = 0;
     public $_sendBuffer = '';
     public $_sendBufferSize = 1024 * 1000;
@@ -60,8 +61,8 @@ class TcpConnections {
             while ($server->_protocol->Len($this->_recvBuffer)) {
                 $msgLen = $server->_protocol->msgLen($this->_recvBuffer);
                 //截取一条消息
-                $oneMsg = mb_substr($this->_recvBuffer, 0, $msgLen);
-                $this->_recvBuffer = mb_substr($this->_recvBuffer, $msgLen);
+                $oneMsg = substr($this->_recvBuffer, 0, $msgLen);
+                $this->_recvBuffer = substr($this->_recvBuffer, $msgLen);
                 $this->_recvLen -= $msgLen;
                 $server->onMsg();
                 $message = $server->_protocol->decode($oneMsg);
@@ -120,7 +121,7 @@ class TcpConnections {
                 return true;
             }
             else if ($writeLen > 0) {
-                $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
+                $this->_sendBuffer = substr($this->_sendBuffer, $writeLen);
                 $this->_sendLen -= $writeLen;
             } else {
                 $this->close();

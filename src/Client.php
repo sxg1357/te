@@ -14,7 +14,7 @@ class Client {
     public $_socket;
     public $_events = [];
 
-    public $_readBufferSize = 1024;
+    public $_readBufferSize = 102400;
     public $_recvBufferSize = 1024 * 100;
     public $_recvLen = 0;           //当前连接目前接收到的字节数
     public $_recvBufferFull = 0;    //当前连接是否超出接收缓冲区
@@ -70,9 +70,9 @@ class Client {
     public function eventLoop()
     {
         if (is_resource($this->_socket)) {
-            $readFds[] = $this->_socket;
-            $writeFds[] = $this->_socket;
-            $expFds[] = $this->_socket;
+            $readFds = [$this->_socket];
+            $writeFds = [$this->_socket];
+            $expFds = [$this->_socket];
 
             set_error_handler(function () {});
             $ret = stream_select($readFds, $writeFds, $expFds, NULL, NULL);
@@ -146,7 +146,7 @@ class Client {
                     $this->_sendLen = 0;
                     return true;
                 } else if ($writeLen > 0) {
-                    $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
+                    $this->_sendBuffer = substr($this->_sendBuffer, $writeLen);
                     $this->_sendLen -= $writeLen;
                 } else {
                     $this->close();
@@ -159,8 +159,8 @@ class Client {
         while ($this->_protocol->Len($this->_recvBuffer)) {
             $msgLen = $this->_protocol->msgLen($this->_recvBuffer);
             //截取一条消息
-            $oneMsg = mb_substr($this->_recvBuffer, 0, $msgLen);
-            $this->_recvBuffer = mb_substr($this->_recvBuffer, $msgLen);
+            $oneMsg = substr($this->_recvBuffer, 0, $msgLen);
+            $this->_recvBuffer = substr($this->_recvBuffer, $msgLen);
             $this->_recvLen -= $msgLen;
 
             $message = $this->_protocol->decode($oneMsg);
