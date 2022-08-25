@@ -71,7 +71,7 @@ class Server {
 
     public function listen() {
         $flags = STREAM_SERVER_LISTEN|STREAM_SERVER_BIND;
-        $option['socket']['backlog'] = 10;
+        $option['socket']['backlog'] = 102400;
         $context = stream_context_create($option);    //setsocketopt
         $this->_socket = stream_socket_server($this->_address, $error_code, $error_message, $flags, $context);
         if (!is_resource($this->_socket)) {
@@ -90,8 +90,8 @@ class Server {
         $readFds[] = $this->_socket;
         while (1) {
             $reads = $readFds;
-            $writeFds = [];
-            $expFds = [];
+            $writes = [];
+            $exps = [];
 
 //            $this->statistics();
 
@@ -100,13 +100,13 @@ class Server {
                     $socket_fd = $connection->_socketFd;
                     if (is_resource($socket_fd)) {
                         $reads[] = $socket_fd;
-                        $writeFds[] = $socket_fd;
+                        $writes[] = $socket_fd;
                     }
                 }
             }
             set_error_handler(function (){});
             //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
-            $ret = stream_select($reads, $writeFds, $expFds, NULL);
+            $ret = stream_select($reads, $writes, $exps, NULL);
             restore_error_handler();
             if ($ret === false) {
                 break;

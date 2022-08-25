@@ -67,7 +67,7 @@ class Client {
         }
     }
 
-    public function eventLoop(): bool
+    public function eventLoop()
     {
         if (is_resource($this->_socket)) {
             $readFds[] = $this->_socket;
@@ -95,7 +95,9 @@ class Client {
     }
 
     public function close() {
-        fclose($this->_socket);
+        if (is_resource($this->_socket)) {
+            fclose($this->_socket);
+        }
         $this->eventCallBak("close");
     }
 
@@ -128,25 +130,27 @@ class Client {
         }
     }
 
-    public function needWrite(): bool
+    public function needWrite()
     {
         return $this->_sendLen > 0;
     }
 
-    public function writeSocket(): bool
+    public function writeSocket()
     {
         if ($this->needWrite()) {
-            $writeLen = fwrite($this->_socket, $this->_sendBuffer, $this->_sendLen);
-            $this->onSendWrite();
-            if ($writeLen == $this->_sendLen) {
-                $this->_sendBuffer = '';
-                $this->_sendLen = 0;
-                return true;
-            } else if ($writeLen > 0) {
-                $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
-                $this->_sendLen -= $writeLen;
-            } else {
-                $this->close();
+            if (is_resource($this->_socket)) {
+                $writeLen = fwrite($this->_socket, $this->_sendBuffer, $this->_sendLen);
+                $this->onSendWrite();
+                if ($writeLen == $this->_sendLen) {
+                    $this->_sendBuffer = '';
+                    $this->_sendLen = 0;
+                    return true;
+                } else if ($writeLen > 0) {
+                    $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
+                    $this->_sendLen -= $writeLen;
+                } else {
+                    $this->close();
+                }
             }
         }
     }

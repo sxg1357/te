@@ -21,7 +21,7 @@ class Stream implements Protocols {
             return false;
         }
         $tmp = unpack("NtotalLen", $data);
-        if (strlen($data) < strlen($tmp['totalLen'])) {
+        if (strlen($data) < $tmp['totalLen']) {
             return false;
         }
         return true;

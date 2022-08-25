@@ -12,7 +12,7 @@ require_once "vendor/autoload.php";
 class ms {
     private $_server;
     public function __construct() {
-        $this->_server = new Socket\Ms\Server("stream://127.0.0.1:9501");
+        $this->_server = new Socket\Ms\Server("stream://127.0.0.1:12345");
         $this->_server->on("connect", [$this, "onConnect"]); 
         $this->_server->on("receive", [$this, "onReceive"]);
         $this->_server->on("close", [$this, "onClose"]);

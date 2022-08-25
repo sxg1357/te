@@ -15,7 +15,7 @@ $startTime = time();
 $clients = [];
 
 for ($i = 0; $i < $clientNum; $i++) {
-    $clients[] = $client = new Client("tcp://127.0.0.1:9501");
+    $clients[] = $client = new Client("tcp://127.0.0.1:12345");
 
     $client->on("connect", function (Client $client) {
         fprintf(STDOUT, "socket<%d> connect success!\r\n", (int)$client->_socket);
