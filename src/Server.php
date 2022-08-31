@@ -70,7 +70,7 @@ class Server {
 
     public function listen() {
         $flags = STREAM_SERVER_LISTEN|STREAM_SERVER_BIND;
-        $option['socket']['backlog'] = 10;
+        $option['socket']['backlog'] = 102400;   //ulimit -a
         $context = stream_context_create($option);    //setsocketopt
         $this->_socket = stream_socket_server($this->_address, $error_code, $error_message, $flags, $context);
         if (!is_resource($this->_socket)) {
@@ -95,10 +95,11 @@ class Server {
     }
 
     public function eventLoop() {
+        $readFds[] = $this->_socket;
         while (1) {
-            $readFds[] = $this->_socket;
-            $writeFds = [];
-            $expFds = [];
+            $reads = $readFds;
+            $writes = [];
+            $exps = [];
 
             $this->statistics();
             $this->checkHeartTime();
@@ -107,26 +108,38 @@ class Server {
                 foreach (self::$_connections as $idx => $connection) {
                     $socket_fd = $connection->_socketFd;
                     if (is_resource($socket_fd)) {
-                        $readFds[] = $socket_fd;
-                        $writeFds[] = $socket_fd;
+                        $reads[] = $socket_fd;
+                        $writes[] = $socket_fd;
                     }
                 }
             }
             set_error_handler(function (){});
             //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
-            $ret = stream_select($readFds, $writeFds, $expFds, NULL);
+            $ret = stream_select($reads, $writes, $exps, NULL);
             restore_error_handler();
             if ($ret === false) {
                 break;
             }
-            if ($readFds) {
-                foreach ($readFds as $fd) {
+            if ($reads) {
+                foreach ($reads as $fd) {
                     if ($fd == $this->_socket) {
                         $this->accept();
                     } else {
                         /**@var TcpConnections $connection */
+                        if (isset(self::$_connections[(int)$fd])) {
+                            $connection = self::$_connections[(int)$fd];
+                            $connection->recvSocket();
+                        }
+                    }
+                }
+            }
+
+            if ($writes) {
+                foreach ($writes as $fd) {
+                    if (isset(self::$_connections[(int)$fd])) {
+                        /**@var TcpConnections $connection*/
                         $connection = self::$_connections[(int)$fd];
-                        $connection->recvSocket();
+                        $connection->writeSocket();
                     }
                 }
             }
@@ -152,7 +165,6 @@ class Server {
             $connection = new TcpConnections($connId, $peer_name, $this);
             $this->onClientJoin();
             self::$_connections[(int)($connId)] = $connection;
-            fprintf(STDOUT, "connect success connId:%s\n", $connId);
             $this->eventCallBak("connect", [$connection]);
         }
     }

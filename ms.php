@@ -25,7 +25,7 @@ class ms {
 
     public function onReceive(Socket\Ms\Server $Server, $msg, Socket\Ms\TcpConnections $connection) {
 //        fprintf(STDOUT, "有客户发送数据:%s\n", $msg);
-//        $connection->send("i am a server");
+        $connection->send("i am a server ".time());
     }
 
     public function onClose(Socket\Ms\Server $Server, Socket\Ms\TcpConnections $connection) {

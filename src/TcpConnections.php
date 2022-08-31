@@ -19,6 +19,7 @@ class TcpConnections {
     public $_recvBufferFull = 0;    //当前连接是否超出接收缓冲区
     public $_recvBuffer = '';
 
+
     public $_sendLen = 0;
     public $_sendBuffer = '';
     public $_sendBufferSize = 1024 * 1000;
@@ -36,7 +37,7 @@ class TcpConnections {
     }
 
     public function recvSocket() {
-        if ($this->_recvLen < $this->_readBufferSize) {
+        if ($this->_recvLen < $this->_recvBufferSize) {
             $data = fread($this->_socketFd, $this->_readBufferSize);
             if ($data === '' || $data === false) {
                 if (feof($this->_socketFd) || !is_resource($this->_socketFd)) {
@@ -60,13 +61,13 @@ class TcpConnections {
         /**@var server $server*/
         $server = $this->_server;
 
-        if (is_object($server->_protocol) && $server->_protocol !== null) {
+        if (is_object($server->_protocol) && $server->_protocol != null) {
             while ($server->_protocol->Len($this->_recvBuffer)) {
                 $msgLen = $server->_protocol->msgLen($this->_recvBuffer);
-                $oneMsg = mb_substr($this->_recvBuffer, 0, $msgLen);
-                $this->_recvBuffer = mb_substr($this->_recvBuffer, $msgLen);
+                //截取一条消息
+                $oneMsg = substr($this->_recvBuffer, 0, $msgLen);
+                $this->_recvBuffer = substr($this->_recvBuffer, $msgLen);
                 $this->_recvLen -= $msgLen;
-                $this->_recvBufferFull--;
                 $server->onMsg();
                 $message = $server->_protocol->decode($oneMsg);
                 $server->eventCallBak("receive", [$message, $this]);
@@ -104,17 +105,17 @@ class TcpConnections {
         $this->_heartTime = time();
     }
 
-    public function needWrite(): bool
+    public function needWrite()
     {
         return $this->_sendLen > 0;
     }
 
-    public function send($data): bool
+    public function send($data)
     {
         $len = strlen($data);
         $server = $this->_server;
         if ($this->_sendLen + $len < $this->_sendBufferSize) {
-            if (is_object($server->_protocol) && $server->_protocol !== null) {
+            if (is_object($server->_protocol) && $server->_protocol != null) {
                 $bin = $this->_server->_protocol->encode($data);
                 $this->_sendBuffer .= $bin[1];
                 $this->_sendLen += $bin[0];
@@ -129,7 +130,7 @@ class TcpConnections {
         }
     }
 
-    public function writeSocket($fd, $data): bool
+    public function writeSocket()
     {
         if ($this->needWrite()) {
             $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
@@ -139,7 +140,7 @@ class TcpConnections {
                 return true;
             }
             else if ($writeLen > 0) {
-                $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
+                $this->_sendBuffer = substr($this->_sendBuffer, $writeLen);
                 $this->_sendLen -= $writeLen;
             } else {
                 $this->close();

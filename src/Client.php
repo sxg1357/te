@@ -14,7 +14,7 @@ class Client {
     public $_socket;
     public $_events = [];
 
-    public $_readBufferSize = 1024;
+    public $_readBufferSize = 102400;
     public $_recvBufferSize = 1024 * 100;
     public $_recvLen = 0;           //当前连接目前接收到的字节数
     public $_recvBufferFull = 0;    //当前连接是否超出接收缓冲区
@@ -67,31 +67,37 @@ class Client {
         }
     }
 
-    public function eventLoop(): bool
+    public function eventLoop()
     {
         if (is_resource($this->_socket)) {
-            $readFds[] = $this->_socket;
-            $writeFds[] = $this->_socket;
-            $expFds[] = $this->_socket;
-        }
-        set_error_handler(function (){});
-        $ret = stream_select($readFds, $writeFds, $expFds, NULL, NULL);
-        restore_error_handler();
-        if ($ret <= 0 || $ret === false) {
+            $readFds = [$this->_socket];
+            $writeFds = [$this->_socket];
+            $expFds = [$this->_socket];
+
+            set_error_handler(function () {});
+            $ret = stream_select($readFds, $writeFds, $expFds, NULL, NULL);
+            restore_error_handler();
+            if ($ret <= 0 || $ret === false) {
+                return false;
+            }
+
+            if ($readFds) {
+                $this->recvSocket();
+            }
+
+            if ($writeFds) {
+                $this->writeSocket();
+            }
+            return true;
+        } else {
             return false;
         }
-        if ($readFds) {
-            $this->recvSocket();
-        }
-
-        if ($writeFds) {
-            $this->writeSocket();
-        }
-        return true;
     }
 
     public function close() {
-        fclose($this->_socket);
+        if (is_resource($this->_socket)) {
+            fclose($this->_socket);
+        }
         $this->eventCallBak("close");
     }
 
@@ -124,25 +130,27 @@ class Client {
         }
     }
 
-    public function needWrite(): bool
+    public function needWrite()
     {
         return $this->_sendLen > 0;
     }
 
-    public function writeSocket(): bool
+    public function writeSocket()
     {
         if ($this->needWrite()) {
-            $writeLen = fwrite($this->_socket, $this->_sendBuffer, $this->_sendLen);
-            $this->onSendWrite();
-            if ($writeLen == $this->_sendLen) {
-                $this->_sendBuffer = '';
-                $this->_sendLen = 0;
-                return true;
-            } elseif ($this->_sendLen > 0) {
-                $this->_sendBuffer = mb_substr($this->_sendBuffer, $writeLen);
-                $this->_sendLen -= $writeLen;
-            } else {
-                $this->close();
+            if (is_resource($this->_socket)) {
+                $writeLen = fwrite($this->_socket, $this->_sendBuffer, $this->_sendLen);
+                $this->onSendWrite();
+                if ($writeLen == $this->_sendLen) {
+                    $this->_sendBuffer = '';
+                    $this->_sendLen = 0;
+                    return true;
+                } else if ($writeLen > 0) {
+                    $this->_sendBuffer = substr($this->_sendBuffer, $writeLen);
+                    $this->_sendLen -= $writeLen;
+                } else {
+                    $this->close();
+                }
             }
         }
     }
@@ -151,8 +159,8 @@ class Client {
         while ($this->_protocol->Len($this->_recvBuffer)) {
             $msgLen = $this->_protocol->msgLen($this->_recvBuffer);
             //截取一条消息
-            $oneMsg = mb_substr($this->_recvBuffer, 0, $msgLen);
-            $this->_recvBuffer = mb_substr($this->_recvBuffer, $msgLen);
+            $oneMsg = substr($this->_recvBuffer, 0, $msgLen);
+            $this->_recvBuffer = substr($this->_recvBuffer, $msgLen);
             $this->_recvLen -= $msgLen;
 
             $message = $this->_protocol->decode($oneMsg);
