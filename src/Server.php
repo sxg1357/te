@@ -15,7 +15,6 @@ class Server {
     public $_events = [];
 
     public $_protocol = null;
-    public $_protocol_layout;
 
     static public $_clientNum = 0;
     static public $_recvNum = 0;
@@ -86,6 +85,15 @@ class Server {
         $this->eventLoop();
     }
 
+    public function checkHeartTime() {
+        foreach (self::$_connections as $idx => $fd) {
+            /**@var TcpConnections $fd */
+            if ($fd->checkHeartTime()) {
+                $fd->close();
+            }
+        }
+    }
+
     public function eventLoop() {
         while (1) {
             $readFds[] = $this->_socket;
@@ -93,6 +101,7 @@ class Server {
             $expFds = [];
 
             $this->statistics();
+            $this->checkHeartTime();
 
             if (!empty(self::$_connections)) {
                 foreach (self::$_connections as $idx => $connection) {
@@ -130,11 +139,11 @@ class Server {
         }
     }
 
-    public function onClientLeave($socket_fd) {
+    public function removeClient($socket_fd) {
         if (isset(self::$_connections[(int)$socket_fd])) {
             unset(self::$_connections[(int)$socket_fd]);
+            self::$_clientNum--;
         }
-        self::$_clientNum--;
     }
 
     public function accept() {

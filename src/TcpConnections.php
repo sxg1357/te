@@ -24,11 +24,15 @@ class TcpConnections {
     public $_sendBufferSize = 1024 * 1000;
     public $_sendBufferFull = 0;
 
+    public $_heartTime = 0;
+    const HEART_BEAT = 5;
+
 
     public function __construct($socketFd, $clientIp, $server) {
         $this->_socketFd = $socketFd;
         $this->_clientIp = $clientIp;
         $this->_server = $server;
+        $this->_heartTime = time();
     }
 
     public function recvSocket() {
@@ -66,12 +70,14 @@ class TcpConnections {
                 $server->onMsg();
                 $message = $server->_protocol->decode($oneMsg);
                 $server->eventCallBak("receive", [$message, $this]);
+                $this->resetHeartTime();
             }
         } else {
             $server->eventCallBak("receive", [$this->_recvBuffer, $this]);
             $this->_recvBufferFull = 0;
             $this->_recvLen = 0;
             $this->_recvBuffer = '';
+            $this->resetHeartTime();
         }
     }
 
@@ -82,7 +88,20 @@ class TcpConnections {
         /**@var Server $server*/
         $server = $this->_server;
         $server->eventCallBak("close", [$this]);
-        $server->onClientLeave($this->_socketFd);
+        $server->removeClient($this->_socketFd);
+    }
+
+    public function checkHeartTime() {
+        $nowTime = time();
+        if ($nowTime - $this->_heartTime >= self::HEART_BEAT) {
+            fprintf(STDOUT, "心跳时间已超出:%d\n", $nowTime - $this->_heartTime);
+            return true;
+        }
+        return false;
+    }
+
+    public function resetHeartTime() {
+        $this->_heartTime = time();
     }
 
     public function needWrite(): bool
