@@ -19,7 +19,6 @@ class TcpConnections {
     public $_recvBufferFull = 0;    //当前连接是否超出接收缓冲区
     public $_recvBuffer = '';
 
-
     public $_sendLen = 0;
     public $_sendBuffer = '';
     public $_sendBufferSize = 1024 * 1000;
@@ -28,12 +27,25 @@ class TcpConnections {
     public $_heartTime = 0;
     const HEART_BEAT = 5;
 
+    const STATUS_CLOSE = 10;
+    const STATUS_CONNECTED = 11;
+    public $_status;
+
 
     public function __construct($socketFd, $clientIp, $server) {
         $this->_socketFd = $socketFd;
         $this->_clientIp = $clientIp;
         $this->_server = $server;
         $this->_heartTime = time();
+        $this->_status = self::STATUS_CONNECTED;
+    }
+
+    public function isConnected() : bool
+    {
+        if ($this->_status == self::STATUS_CONNECTED && is_resource($this->_socketFd))
+            return true;
+        else
+            return false;
     }
 
     public function recvSocket() {
@@ -78,6 +90,7 @@ class TcpConnections {
             $this->_recvBufferFull = 0;
             $this->_recvLen = 0;
             $this->_recvBuffer = '';
+            $server->onMsg();
             $this->resetHeartTime();
         }
     }
@@ -90,6 +103,8 @@ class TcpConnections {
         $server = $this->_server;
         $server->eventCallBak("close", [$this]);
         $server->removeClient($this->_socketFd);
+        $this->_status = self::STATUS_CLOSE;
+        $this->_socketFd = null;
     }
 
     public function checkHeartTime() {

@@ -102,7 +102,7 @@ class Server {
             $exps = [];
 
             $this->statistics();
-            $this->checkHeartTime();
+//            $this->checkHeartTime();
 
             if (!empty(self::$_connections)) {
                 foreach (self::$_connections as $idx => $connection) {
@@ -128,7 +128,9 @@ class Server {
                         /**@var TcpConnections $connection */
                         if (isset(self::$_connections[(int)$fd])) {
                             $connection = self::$_connections[(int)$fd];
-                            $connection->recvSocket();
+                            if ($connection->isConnected()) {
+                                $connection->recvSocket();
+                            }
                         }
                     }
                 }
@@ -139,7 +141,9 @@ class Server {
                     if (isset(self::$_connections[(int)$fd])) {
                         /**@var TcpConnections $connection*/
                         $connection = self::$_connections[(int)$fd];
-                        $connection->writeSocket();
+                        if ($connection->isConnected()) {
+                            $connection->writeSocket();
+                        }
                     }
                 }
             }

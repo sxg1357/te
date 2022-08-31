@@ -31,6 +31,9 @@ class Client {
     public $_sendNum = 0;
     public $_sendMsgNum = 0;
 
+    const STATUS_CLOSE = 10;
+    const STATUS_CONNECTED = 11;
+    public $_status;
 
     public function onSendWrite()
     {
@@ -61,6 +64,7 @@ class Client {
         $this->_socket = stream_socket_client($this->_address, $error_code, $error_message);
         if (is_resource($this->_socket)) {
             $this->eventCallBak("connect");
+            $this->_status = self::STATUS_CONNECTED;
         } else {
             $this->eventCallBak("error", [$error_code, $error_message]);
             exit(0);
@@ -99,6 +103,16 @@ class Client {
             fclose($this->_socket);
         }
         $this->eventCallBak("close");
+        $this->_status = self::STATUS_CLOSE;
+        $this->_socket = null;
+    }
+
+    public function isConnected() : bool
+    {
+        if ($this->_status == self::STATUS_CONNECTED && is_resource($this->_socket))
+            return true;
+        else
+            return false;
     }
 
     public function send($data) {
@@ -115,18 +129,20 @@ class Client {
     }
 
     public function recvSocket() {
-        $data = fread($this->_socket, $this->_readBufferSize);
-        if ($data === '' || $data === false) {
-            if (feof($this->_socket) || !is_resource($this->_socket)) {
-                $this->close();
+        if ($this->isConnected()) {
+            $data = fread($this->_socket, $this->_readBufferSize);
+            if ($data === '' || $data === false) {
+                if (feof($this->_socket) || !is_resource($this->_socket)) {
+                    $this->close();
+                }
+            } else {
+                //把接收到的数据放在接收缓冲区
+                $this->_recvBuffer .= $data;
+                $this->_recvLen += strlen($data);
             }
-        } else {
-            //把接收到的数据放在接收缓冲区
-            $this->_recvBuffer .= $data;
-            $this->_recvLen += strlen($data);
-        }
-        if ($this->_recvLen > 0) {
-            $this->handleMessage();
+            if ($this->_recvLen > 0) {
+                $this->handleMessage();
+            }
         }
     }
 
@@ -137,7 +153,7 @@ class Client {
 
     public function writeSocket()
     {
-        if ($this->needWrite()) {
+        if ($this->needWrite() && $this->isConnected()) {
             if (is_resource($this->_socket)) {
                 $writeLen = fwrite($this->_socket, $this->_sendBuffer, $this->_sendLen);
                 $this->onSendWrite();
