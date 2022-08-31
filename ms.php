@@ -34,5 +34,5 @@ class ms {
     }
 }
 
-$ms = new ms();
+$ms = new ms(); 
 
