@@ -10,6 +10,7 @@ use Socket\Ms\Client;
 
 require_once "vendor/autoload.php";
 
+ini_set("memory_limit", "2048M");
 $clientNum = $argv[1];
 $startTime = time();
 $clients = [];

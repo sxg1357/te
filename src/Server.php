@@ -24,7 +24,7 @@ class Server {
 
     public $_protocols = [
         "stream" => "Socket\Ms\Protocols\Stream",
-        "text" => "",
+        "text" => "Socket\Ms\Protocols\Text",
         "websocket" => "",
         "http" => "",
         "mqtt" => ""
