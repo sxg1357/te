@@ -8,7 +8,7 @@
 
 $eventBase = new \EventBase();
 
-$event = new \Event($eventBase, -1, Event::SIGNAL|Event::PERSIST, function ($fd, $what, $arg) {
+$event = new \Event($eventBase, -1, Event::TIMEOUT|Event::PERSIST, function ($fd, $what, $arg) {
     echo "时间到了\n";
     echo "$fd-$what\n";
     var_dump($arg);

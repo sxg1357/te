@@ -8,6 +8,8 @@
 
 namespace Socket\Ms;
 
+use Socket\Ms\Event\Event;
+
 class TcpConnections {
     public $_socketFd;
     public $_clientIp;
@@ -41,6 +43,8 @@ class TcpConnections {
         stream_set_blocking($this->_socketFd, 0);
         stream_set_write_buffer($this->_socketFd, 0);
         stream_set_blocking($this->_socketFd, 0);
+
+        Server::$_eventLoop->add($this->_socketFd, Event::EVENT_READ, [$this, "recvSocket"]);
     }
 
     public function isConnected() : bool

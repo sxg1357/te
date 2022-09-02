@@ -8,6 +8,9 @@
 
 namespace Socket\Ms;
 
+use Socket\Ms\Event\Epoll;
+use Socket\Ms\Event\Event;
+
 class Server {
     public $_address;
     public $_socket;
@@ -30,6 +33,8 @@ class Server {
         "mqtt" => ""
     ];
 
+    static public $_eventLoop;
+
 
     public function on($eventName, callable $eventCall) {
         $this->_events[$eventName] = $eventCall;
@@ -42,6 +47,7 @@ class Server {
         }
         $this->_starttime = time();
         $this->_address = "tcp:$ip:$port";
+        static::$_eventLoop = new Epoll();
     }
 
     public function onClientJoin() {
@@ -83,6 +89,7 @@ class Server {
 
     public function start() {
         $this->listen();
+        self::$_eventLoop->add($this->_socket, Event::EVENT_READ, [$this, "accept"]);
         $this->eventLoop();
     }
 
@@ -96,6 +103,10 @@ class Server {
     }
 
     public function eventLoop() {
+        echo "loop result:".static::$_eventLoop->loop();
+    }
+
+    public function loop() {
         $readFds[] = $this->_socket;
         while (1) {
             $reads = $readFds;
