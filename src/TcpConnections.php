@@ -14,7 +14,7 @@ class TcpConnections {
     public $_server;
 
     public $_readBufferSize = 1024;
-    public $_recvBufferSize = 1024 * 100;     //当前连接接收缓冲区字节数大小
+    public $_recvBufferSize = 1024 * 1000 * 10;     //当前连接接收缓冲区字节数大小
     public $_recvLen = 0;           //当前连接目前接受到的字节数
     public $_recvBufferFull = 0;    //当前连接是否超出接收缓冲区
     public $_recvBuffer = '';
@@ -38,6 +38,9 @@ class TcpConnections {
         $this->_server = $server;
         $this->_heartTime = time();
         $this->_status = self::STATUS_CONNECTED;
+        stream_set_blocking($this->_socketFd, 0);
+        stream_set_write_buffer($this->_socketFd, 0);
+        stream_set_blocking($this->_socketFd, 0);
     }
 
     public function isConnected() : bool

@@ -73,6 +73,7 @@ class Server {
         $option['socket']['backlog'] = 102400;   //ulimit -a
         $context = stream_context_create($option);    //setsocketopt
         $this->_socket = stream_socket_server($this->_address, $error_code, $error_message, $flags, $context);
+        stream_set_blocking($this->_socket, 0);
         if (!is_resource($this->_socket)) {
             fprintf(STDOUT, "socket create fail:%s\n", $error_message);
             exit(0);
@@ -109,13 +110,13 @@ class Server {
                     $socket_fd = $connection->_socketFd;
                     if (is_resource($socket_fd)) {
                         $reads[] = $socket_fd;
-                        $writes[] = $socket_fd;
+//                        $writes[] = $socket_fd;
                     }
                 }
             }
             set_error_handler(function (){});
             //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
-            $ret = stream_select($reads, $writes, $exps, NULL);
+            $ret = stream_select($reads, $writes, $exps, 0, 100);
             restore_error_handler();
             if ($ret === false) {
                 break;
