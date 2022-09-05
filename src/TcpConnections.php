@@ -44,7 +44,9 @@ class TcpConnections {
         stream_set_write_buffer($this->_socketFd, 0);
 
         Server::$_eventLoop->add($this->_socketFd, Event::READ, [$this, "recvSocket"]);
-        Server::$_eventLoop->add($this->_socketFd, Event::WRITE, [$this, "writeSocket"]);
+        //客户端上来之后，不要马上添加这个写事件，否则它会一直触发可写事件，导致执行大量的发送操作
+        //会消耗cpu的资源
+        //Server::$_eventLoop->add($this->_socketFd, Event::WRITE, [$this, "writeSocket"]);
     }
 
     public function isConnected() : bool
@@ -103,6 +105,9 @@ class TcpConnections {
     }
 
     public function close() {
+        //epoll_ctl(3, EPOLL_CTL_DEL, 7, 0x7ffd0f3f32b0) = 0
+        Server::$_eventLoop->del($this->_socketFd, Event::READ);
+        Server::$_eventLoop->del($this->_socketFd, Event::WRITE);
         if (is_resource($this->_socketFd)) {
             fclose($this->_socketFd);
         }
@@ -150,6 +155,20 @@ class TcpConnections {
                 $this->_sendBufferFull++;
             }
         }
+
+        $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
+        if ($writeLen == $this->_sendLen) {
+            $this->_sendBuffer = '';
+            $this->_sendLen = 0;
+            $this->_sendBufferFull = 0;
+        } else if ($this->_sendLen > 0) {
+            $this->_sendBuffer = substr($this->_sendBuffer, $writeLen);
+            $this->_sendLen -= $writeLen;
+            Server::$_eventLoop->add($this->_socketFd, Event::WRITE, [$this, "writeSocket"]);
+        } else {
+            $this->close();
+        }
+
     }
 
     public function writeSocket()
@@ -159,6 +178,7 @@ class TcpConnections {
             if ($writeLen == $this->_sendLen) {
                 $this->_sendBuffer = '';
                 $this->_sendLen = 0;
+                $this->_sendBufferFull = 0;
                 Server::$_eventLoop->del($this->_socketFd, Event::WRITE);
                 return true;
             }
