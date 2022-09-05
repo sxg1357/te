@@ -89,7 +89,7 @@ class Server {
 
     public function start() {
         $this->listen();
-        self::$_eventLoop->add($this->_socket, Event::EVENT_READ, [$this, "accept"]);
+        self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
         $this->eventLoop();
     }
 

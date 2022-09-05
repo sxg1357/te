@@ -22,23 +22,23 @@ class Epoll implements Event
     {
         // TODO: Implement add() method.
         switch ($flag) {
-            case self::EVENT_READ:
+            case self::READ:
                 $event = new \Event($this->_eventBase, $fd, \Event::READ|\Event::PERSIST, $func, $args);
                 if (!$event || !$event->add()) {
                     fprintf(STDOUT, "事件添加失败\n");
                     print_r(error_get_last());
                     return false;
                 }
-                $this->_allEvents[(int)$fd][Event::EVENT_READ] = $event;
+                $this->_allEvents[(int)$fd][Event::READ] = $event;
                 break;
-            case self::EVENT_WRITE:
+            case self::WRITE:
                 $event = new \Event($this->_eventBase, $fd, \Event::WRITE|\Event::PERSIST, $func, $args);
                 if (!$event || !$event->add()) {
                     fprintf(STDOUT, "事件添加失败\n");
                     print_r(error_get_last());
                     return false;
                 }
-                $this->_allEvents[(int)$fd][Event::EVENT_WRITE] = $event;
+                $this->_allEvents[(int)$fd][Event::WRITE] = $event;
                 break;
         }
     }
@@ -47,21 +47,21 @@ class Epoll implements Event
     {
         // TODO: Implement del() method.
         switch ($flag) {
-            case self::EVENT_READ:
-                if (isset($this->_allEvents[(int)$fd][self::EVENT_READ])) {
-                    $event = $this->_allEvents[(int)$fd][self::EVENT_READ];
+            case self::READ:
+                if (isset($this->_allEvents[(int)$fd][self::READ])) {
+                    $event = $this->_allEvents[(int)$fd][self::READ];
                     $event->del();
-                    unset($this->_allEvents[(int)$fd][self::EVENT_READ]);
+                    unset($this->_allEvents[(int)$fd][self::READ]);
                 }
                 if (empty($this->_allEvents[(int)$fd])) {
                     unset($this->_allEvents[(int)$fd]);
                 }
                 break;
-            case self::EVENT_WRITE:
-                if (isset($this->_allEvents[(int)$fd][self::EVENT_WRITE])) {
-                    $event = $this->_allEvents[(int)$fd][self::EVENT_WRITE];
+            case self::WRITE:
+                if (isset($this->_allEvents[(int)$fd][self::WRITE])) {
+                    $event = $this->_allEvents[(int)$fd][self::WRITE];
                     $event->del();
-                    unset($this->_allEvents[(int)$fd][self::EVENT_WRITE]);
+                    unset($this->_allEvents[(int)$fd][self::WRITE]);
                 }
                 if (empty($this->_allEvents[(int)$fd])) {
                     unset($this->_allEvents[(int)$fd]);

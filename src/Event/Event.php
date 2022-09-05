@@ -10,8 +10,8 @@ namespace Socket\Ms\Event;
 
 interface Event
 {
-    const EVENT_READ = 10;
-    const EVENT_WRITE = 11;
+    const READ = 2;
+    const WRITE = 4;
     const EVENT_SIGNAL = 12;
     const EVENT_TIMER = 13;
     const EV_TIMER_ONCE = 13;
