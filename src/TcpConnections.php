@@ -45,6 +45,7 @@ class TcpConnections {
         stream_set_blocking($this->_socketFd, 0);
 
         Server::$_eventLoop->add($this->_socketFd, Event::EVENT_READ, [$this, "recvSocket"]);
+        Server::$_eventLoop->add($this->_socketFd, Event::EVENT_WRITE, [$this, "writeSocket"]);
     }
 
     public function isConnected() : bool
@@ -159,6 +160,7 @@ class TcpConnections {
             if ($writeLen == $this->_sendLen) {
                 $this->_sendBuffer = '';
                 $this->_sendLen = 0;
+                Server::$_eventLoop->del($this->_socketFd, Event::EVENT_WRITE);
                 return true;
             }
             else if ($writeLen > 0) {

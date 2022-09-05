@@ -46,6 +46,29 @@ class Epoll implements Event
     public function del($fd, $flag)
     {
         // TODO: Implement del() method.
+        switch ($flag) {
+            case self::EVENT_READ:
+                if (isset($this->_allEvents[(int)$fd][self::EVENT_READ])) {
+                    $event = $this->_allEvents[(int)$fd][self::EVENT_READ];
+                    $event->del();
+                    unset($this->_allEvents[(int)$fd][self::EVENT_READ]);
+                }
+                if (empty($this->_allEvents[(int)$fd])) {
+                    unset($this->_allEvents[(int)$fd]);
+                }
+                break;
+            case self::EVENT_WRITE:
+                if (isset($this->_allEvents[(int)$fd][self::EVENT_WRITE])) {
+                    $event = $this->_allEvents[(int)$fd][self::EVENT_WRITE];
+                    $event->del();
+                    unset($this->_allEvents[(int)$fd][self::EVENT_WRITE]);
+                }
+                if (empty($this->_allEvents[(int)$fd])) {
+                    unset($this->_allEvents[(int)$fd]);
+                }
+                break;
+        }
+
     }
 
     public function loop()

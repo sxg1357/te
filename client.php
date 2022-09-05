@@ -24,7 +24,7 @@ for ($i = 0; $i < $clientNum; $i++) {
     });
 
     $client->on("receive", function (Client $client, $msg) {
-//        fprintf(STDOUT, "recv from server %s\n", $msg);
+        fprintf(STDOUT, "recv from server %s\n", $msg);
     });
 
     $client->on("error", function (Client $client, $error_code, $error_message) {

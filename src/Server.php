@@ -106,61 +106,61 @@ class Server {
         echo "loop result:".static::$_eventLoop->loop();
     }
 
-    public function loop() {
-        $readFds[] = $this->_socket;
-        while (1) {
-            $reads = $readFds;
-            $writes = [];
-            $exps = [];
-
-            $this->statistics();
-//            $this->checkHeartTime();
-
-            if (!empty(self::$_connections)) {
-                foreach (self::$_connections as $idx => $connection) {
-                    $socket_fd = $connection->_socketFd;
-                    if (is_resource($socket_fd)) {
-                        $reads[] = $socket_fd;
-//                        $writes[] = $socket_fd;
-                    }
-                }
-            }
-            set_error_handler(function (){});
-            //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
-            $ret = stream_select($reads, $writes, $exps, 0, 100);
-            restore_error_handler();
-            if ($ret === false) {
-                break;
-            }
-            if ($reads) {
-                foreach ($reads as $fd) {
-                    if ($fd == $this->_socket) {
-                        $this->accept();
-                    } else {
-                        /**@var TcpConnections $connection */
-                        if (isset(self::$_connections[(int)$fd])) {
-                            $connection = self::$_connections[(int)$fd];
-                            if ($connection->isConnected()) {
-                                $connection->recvSocket();
-                            }
-                        }
-                    }
-                }
-            }
-
-            if ($writes) {
-                foreach ($writes as $fd) {
-                    if (isset(self::$_connections[(int)$fd])) {
-                        /**@var TcpConnections $connection*/
-                        $connection = self::$_connections[(int)$fd];
-                        if ($connection->isConnected()) {
-                            $connection->writeSocket();
-                        }
-                    }
-                }
-            }
-        }
-    }
+//    public function loop() {
+//        $readFds[] = $this->_socket;
+//        while (1) {
+//            $reads = $readFds;
+//            $writes = [];
+//            $exps = [];
+//
+//            $this->statistics();
+////            $this->checkHeartTime();
+//
+//            if (!empty(self::$_connections)) {
+//                foreach (self::$_connections as $idx => $connection) {
+//                    $socket_fd = $connection->_socketFd;
+//                    if (is_resource($socket_fd)) {
+//                        $reads[] = $socket_fd;
+////                        $writes[] = $socket_fd;
+//                    }
+//                }
+//            }
+//            set_error_handler(function (){});
+//            //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
+//            $ret = stream_select($reads, $writes, $exps, 0, 100);
+//            restore_error_handler();
+//            if ($ret === false) {
+//                break;
+//            }
+//            if ($reads) {
+//                foreach ($reads as $fd) {
+//                    if ($fd == $this->_socket) {
+//                        $this->accept();
+//                    } else {
+//                        /**@var TcpConnections $connection */
+//                        if (isset(self::$_connections[(int)$fd])) {
+//                            $connection = self::$_connections[(int)$fd];
+//                            if ($connection->isConnected()) {
+//                                $connection->recvSocket();
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//
+//            if ($writes) {
+//                foreach ($writes as $fd) {
+//                    if (isset(self::$_connections[(int)$fd])) {
+//                        /**@var TcpConnections $connection*/
+//                        $connection = self::$_connections[(int)$fd];
+//                        if ($connection->isConnected()) {
+//                            $connection->writeSocket();
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     public function eventCallBak($eventName, $args = []) {
         if (isset($this->_events[$eventName]) && is_callable($this->_events[$eventName])) {
