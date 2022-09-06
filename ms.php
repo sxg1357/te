@@ -11,9 +11,11 @@ require_once "vendor/autoload.php";
 ini_set("memory_limit", "2048M");
 
 class ms {
+
     private $_server;
+
     public function __construct() {
-        $this->_server = new Socket\Ms\Server("tcp://127.0.0.1:9501");
+        $this->_server = new Socket\Ms\Server("stream://127.0.0.1:9501");
         $this->_server->on("connect", [$this, "onConnect"]); 
         $this->_server->on("receive", [$this, "onReceive"]);
         $this->_server->on("close", [$this, "onClose"]);
@@ -25,7 +27,7 @@ class ms {
     }
 
     public function onReceive(Socket\Ms\Server $Server, $msg, Socket\Ms\TcpConnections $connection) {
-//        fprintf(STDOUT, "有客户发送数据:%s\n", $msg);
+        fprintf(STDOUT, "有客户发送数据:%s\n", $msg);
         $connection->send("i am a server ".time());
     }
 

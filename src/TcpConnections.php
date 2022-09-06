@@ -11,6 +11,7 @@ namespace Socket\Ms;
 use Socket\Ms\Event\Event;
 
 class TcpConnections {
+
     public $_socketFd;
     public $_clientIp;
     public $_server;
@@ -161,6 +162,7 @@ class TcpConnections {
             $this->_sendBuffer = '';
             $this->_sendLen = 0;
             $this->_sendBufferFull = 0;
+            return true;
         } else if ($this->_sendLen > 0) {
             $this->_sendBuffer = substr($this->_sendBuffer, $writeLen);
             $this->_sendLen -= $writeLen;

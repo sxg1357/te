@@ -7,6 +7,8 @@
  */
 namespace Socket\Ms;
 
+use Socket\Ms\Event\Event;
+use Socket\Ms\Event\Select;
 use Socket\Ms\Protocols\Stream;
 
 class Client {
@@ -35,6 +37,8 @@ class Client {
     const STATUS_CONNECTED = 11;
     public $_status;
 
+    public static $_eventLoop;
+
     public function onSendWrite()
     {
         ++$this->_sendNum;
@@ -58,6 +62,7 @@ class Client {
     public function __construct($address) {
         $this->_address = $address;
         $this->_protocol = new Stream();
+        self::$_eventLoop = new Select();
     }
 
     public function start() {
@@ -65,10 +70,16 @@ class Client {
         if (is_resource($this->_socket)) {
             $this->eventCallBak("connect");
             $this->_status = self::STATUS_CONNECTED;
+            self::$_eventLoop->add($this->_socket, Event::READ, [$this, "recvSocket"]);
         } else {
             $this->eventCallBak("error", [$error_code, $error_message]);
             exit(0);
         }
+    }
+
+    public function loop()
+    {
+        return self::$_eventLoop->loop1();
     }
 
     public function eventLoop()
@@ -126,6 +137,20 @@ class Client {
             }
             $this->onSendMsg();
         }
+
+        $writeLen = fwrite($this->_socket, $this->_sendBuffer, $this->_sendLen);
+        if ($writeLen == $this->_sendLen) {
+            $this->_sendLen = 0;
+            $this->_sendBuffer = '';
+            $this->_sendBufferFull = 0;
+            return true;
+        } else if ($writeLen > 0) {
+            $this->_sendLen -= $writeLen;
+            $this->_sendBufferFull = substr($this->_sendBuffer, $writeLen);
+            static::$_eventLoop->add($this->_socket, Event::WRITE, [$this, "writeSocket"]);
+        } else {
+            $this->close();
+        }
     }
 
     public function recvSocket() {
@@ -160,6 +185,7 @@ class Client {
                 if ($writeLen == $this->_sendLen) {
                     $this->_sendBuffer = '';
                     $this->_sendLen = 0;
+                    static::$_eventLoop->del($this->_socket, Event::WRITE);
                     return true;
                 } else if ($writeLen > 0) {
                     $this->_sendBuffer = substr($this->_sendBuffer, $writeLen);

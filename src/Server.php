@@ -10,8 +10,10 @@ namespace Socket\Ms;
 
 use Socket\Ms\Event\Epoll;
 use Socket\Ms\Event\Event;
+use Socket\Ms\Event\Select;
 
 class Server {
+
     public $_address;
     public $_socket;
     public static $_connections = [];
@@ -47,7 +49,8 @@ class Server {
         }
         $this->_starttime = time();
         $this->_address = "tcp:$ip:$port";
-        static::$_eventLoop = new Epoll();
+//        static::$_eventLoop = new Epoll();
+        static::$_eventLoop = new Select();
     }
 
     public function onClientJoin() {
@@ -103,7 +106,7 @@ class Server {
     }
 
     public function eventLoop() {
-        echo "loop result:".static::$_eventLoop->loop();
+        static::$_eventLoop->loop();
     }
 
 //    public function loop() {
