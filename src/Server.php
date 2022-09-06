@@ -49,8 +49,11 @@ class Server {
         }
         $this->_starttime = time();
         $this->_address = "tcp:$ip:$port";
-//        static::$_eventLoop = new Epoll();
-        static::$_eventLoop = new Select();
+        if (DIRECTORY_SEPARATOR == '/') {
+            static::$_eventLoop = new Epoll();
+        } else {
+            static::$_eventLoop = new Select();
+        }
     }
 
     public function onClientJoin() {

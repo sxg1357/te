@@ -24,7 +24,7 @@ for ($i = 0; $i < $clientNum; $i++) {
     });
 
     $client->on("receive", function (Client $client, $msg) {
-        fprintf(STDOUT, "recv from server %s\n", $msg);
+//        fprintf(STDOUT, "recv from server %s\n", $msg);
     });
 
     $client->on("error", function (Client $client, $error_code, $error_message) {
@@ -39,25 +39,25 @@ for ($i = 0; $i < $clientNum; $i++) {
 }
 
 while (1) {
-//    $now = time();
-//    $diffTime = $now - $startTime;
-//    $startTime = $now;
-//    if ($diffTime >= 1) {
-//        $sendNum = 0;
-//        $sendMsgNum = 0;
-//        foreach ($clients as $client) {
-//            /**@var Client $client * */
-//            $sendNum += $client->_sendNum;
-//            $sendMsgNum += $client->_sendMsgNum;
-//        }
-//        fprintf(STDOUT, "time:<%s>--<clientNum:%d>--<sendNum:%d>--<msgNum:%d>\r\n",
-//            $diffTime, $clientNum, $sendNum, $sendMsgNum);
-//
-//        foreach ($clients as $client) {
-//            $client->_sendNum = 0;
-//            $client->_sendMsgNum = 0;
-//        }
-//    }
+    $now = time();
+    $diffTime = $now - $startTime;
+    $startTime = $now;
+    if ($diffTime >= 1) {
+        $sendNum = 0;
+        $sendMsgNum = 0;
+        foreach ($clients as $client) {
+            /**@var Client $client * */
+            $sendNum += $client->_sendNum;
+            $sendMsgNum += $client->_sendMsgNum;
+        }
+        fprintf(STDOUT, "time:<%s>--<clientNum:%d>--<sendNum:%d>--<msgNum:%d>\r\n",
+            $diffTime, $clientNum, $sendNum, $sendMsgNum);
+
+        foreach ($clients as $client) {
+            $client->_sendNum = 0;
+            $client->_sendMsgNum = 0;
+        }
+    }
 
     for ($i = 0; $i < $clientNum; $i++) {
         $client = $clients[$i];
@@ -68,7 +68,7 @@ while (1) {
         if (!$client->loop()) {
             break;
         }
-        sleep(1);
+//        sleep(1);
     }
 
 }

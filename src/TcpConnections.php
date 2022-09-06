@@ -43,6 +43,7 @@ class TcpConnections {
         $this->_status = self::STATUS_CONNECTED;
         stream_set_blocking($this->_socketFd, 0);
         stream_set_write_buffer($this->_socketFd, 0);
+        stream_set_read_buffer($this->_socketFd, 0);
 
         Server::$_eventLoop->add($this->_socketFd, Event::READ, [$this, "recvSocket"]);
         //客户端上来之后，不要马上添加这个写事件，否则它会一直触发可写事件，导致执行大量的发送操作
@@ -140,6 +141,10 @@ class TcpConnections {
 
     public function send($data)
     {
+        if (!is_resource($this->_socketFd) || feof($this->_socketFd)) {
+            $this->close();
+            return false;
+        }
         $len = strlen($data);
         $server = $this->_server;
         if ($this->_sendLen + $len < $this->_sendBufferSize) {
@@ -156,8 +161,9 @@ class TcpConnections {
                 $this->_sendBufferFull++;
             }
         }
-
+        set_error_handler(function () {});
         $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
+        restore_error_handler();
         if ($writeLen == $this->_sendLen) {
             $this->_sendBuffer = '';
             $this->_sendLen = 0;
@@ -176,7 +182,9 @@ class TcpConnections {
     public function writeSocket()
     {
         if ($this->needWrite()) {
+            set_error_handler(function () {});
             $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
+            restore_error_handler();
             if ($writeLen == $this->_sendLen) {
                 $this->_sendBuffer = '';
                 $this->_sendLen = 0;

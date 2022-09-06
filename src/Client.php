@@ -68,6 +68,9 @@ class Client {
     public function start() {
         $this->_socket = stream_socket_client($this->_address, $error_code, $error_message);
         if (is_resource($this->_socket)) {
+            stream_set_blocking($this->_socket, 0);
+            stream_set_write_buffer($this->_socket, 0);
+            stream_set_read_buffer($this->_socket, 0);
             $this->eventCallBak("connect");
             $this->_status = self::STATUS_CONNECTED;
             self::$_eventLoop->add($this->_socket, Event::READ, [$this, "recvSocket"]);
@@ -127,6 +130,10 @@ class Client {
     }
 
     public function send($data) {
+        if (!is_resource($this->_socket) || feof($this->_socket)) {
+            $this->close();
+            return false;
+        }
         $len = strlen($data);
         if ($this->_sendLen + $len < $this->_sendBufferSize) {
             $bin = $this->_protocol->encode($data);
@@ -143,6 +150,7 @@ class Client {
             $this->_sendLen = 0;
             $this->_sendBuffer = '';
             $this->_sendBufferFull = 0;
+            $this->onSendWrite();
             return true;
         } else if ($writeLen > 0) {
             $this->_sendLen -= $writeLen;
