@@ -96,6 +96,7 @@ class Server {
     public function start() {
         $this->listen();
         self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
+        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
         $this->eventLoop();
     }
 

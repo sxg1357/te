@@ -12,9 +12,9 @@ interface Event
 {
     const READ = 2;
     const WRITE = 4;
-    const EVENT_SIGNAL = 12;
-    const EVENT_TIMER = 13;
-    const EV_TIMER_ONCE = 13;
+    const EVENT_SIGNAL = 8;
+    const EVENT_TIMER = 1;
+    const EV_TIMER_ONCE = 1;
 
     public function add($fd, $flag, $func, $args);
     public function del($fd, $flag);

@@ -14,8 +14,26 @@ class Epoll implements Event
     public $_allEvents;
     public $_signalEvents;
 
+    public static $_timerId = 1;
+    public $_timers = [];
+
     public function __construct() {
         $this->_eventBase = new \EventBase();
+    }
+
+    public function timerCallBack($fd, $what, $arg) {
+        $func = $arg[0];
+        $flag = $arg[1];
+        $timerId = $arg[2];
+        $userArg = $arg[3];
+
+        echo "执行timerCallBack\r\n";
+        if ($flag == Event::EV_TIMER_ONCE){
+            $event = $this->_timers[$timerId][$flag];
+            $event->del();
+            unset($this->_timers[$timerId][$flag]);
+        }
+        call_user_func_array($func,$userArg);
     }
 
     public function add($fd, $flag, $func, $args = [])
@@ -39,6 +57,19 @@ class Epoll implements Event
                     return false;
                 }
                 $this->_allEvents[(int)$fd][Event::WRITE] = $event;
+                break;
+            case self::EVENT_TIMER:
+            case self::EV_TIMER_ONCE:
+                $timer_id = self::$_timerId;
+                $params = [$func, $flag, $timer_id, $args];
+                $event = new \Event($this->_eventBase, -1, self::EVENT_TIMER|\Event::PERSIST, [$this, "timerCallBack"], $params);
+                if (!$event || !$event->add($fd)) {
+                    echo "定时事件添加失败\r\n";
+                    return false;
+                }
+                echo "定时事件添加成功\r\n";
+                $this->_timers[$timer_id][$flag] = $event;
+                ++self::$_timerId;
                 break;
         }
     }
