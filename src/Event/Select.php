@@ -18,10 +18,36 @@ class Select implements Event
     public $_writeFds = [];
     public $_expFds = [];
 
+    public $_timers = [];
+    public static $_timerId = 1;
+    public $_timeout = 100000000;   //1秒=1000毫秒 1毫秒=1000微妙 100秒 微妙级别的定时
+
     public function __construct()
     {
 
     }
+
+    public function timerCallBack() {
+//        echo "执行timerCallBack函数了\r\n";
+        //$params = [$func, $runTime, $flag, $timer_id, $fd, $args];
+        foreach ($this->_timers as $key => $timer) {
+            $func = $timer[0];
+            $runTime = $timer[1];
+            $flag = $timer[2];
+            $timer_id = $timer[3];
+            $fd = $timer[4];
+            $args = $timer[5];
+            if (microtime(true) >= $runTime) {
+                if ($flag == self::EVENT_TIMER_ONCE) {
+                    unset($this->_timers[$timer_id]);
+                } else {
+                    $runTime = microtime(true) + $fd;
+                    $this->_timers[$timer_id][$key][1] = $runTime;
+                }
+                call_user_func_array($func, [$timer_id, $args]);
+            }
+        }
+     }
 
     public function add($fd, $flag, $func, $args = [])
     {
@@ -36,6 +62,19 @@ class Select implements Event
                 $this->_writeFds[$fdKey] = $fd;
                 $this->_allEvents[$fdKey][self::WRITE] = [$func, [$fd, $flag, $args]];
                 break;
+            case self::EVENT_TIMER:
+            case self::EVENT_TIMER_ONCE:
+                $timer_id = self::$_timerId;
+                $runTime = microtime(true) + $fd;
+                $params = [$func, $runTime, $flag, $timer_id, $fd, $args];
+
+                $this->_timers[$timer_id] = $params;
+                $selectTime = $fd * 1000000;
+                if ($this->_timeout >= $selectTime) {
+                    $this->_timeout = $selectTime;
+                }
+                ++self::$_timerId;
+                return $timer_id;
         }
     }
 
@@ -58,6 +97,12 @@ class Select implements Event
                     unset($this->_allEvents[$fdKey]);
                 }
                 break;
+            case self::EVENT_TIMER:
+            case self::EVENT_TIMER_ONCE:
+                if (isset($this->_timers[$fd])) {
+                    unset($this->_timers[$fd]);
+                }
+                break;
         }
     }
 
@@ -71,8 +116,12 @@ class Select implements Event
 
             set_error_handler(function (){});
             //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
-            $ret = stream_select($reads, $writes, $exps, 0, 100);
+            $ret = stream_select($reads, $writes, $exps, 0, $this->_timeout);
             restore_error_handler();
+
+            if (!empty($this->_timers)) {
+                $this->timerCallBack();
+            }
 
             if ($ret === false) {
                 break;
@@ -107,7 +156,7 @@ class Select implements Event
 
         set_error_handler(function (){});
         //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
-        $ret = stream_select($reads, $writes, $exps, 0, 100);
+        $ret = stream_select($reads, $writes, $exps, 0, $this->_timeout);
         restore_error_handler();
 
         if ($ret === false) {
