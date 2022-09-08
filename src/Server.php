@@ -97,10 +97,16 @@ class Server {
         $this->listen();
         self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
         self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
+        $timer_id1 = self::$_eventLoop->add(2, Event::EVENT_TIMER, function ($timer_id, $args) {
+            var_dump($args);
+            self::$_eventLoop->del($timer_id, Event::EVENT_TIMER);
+        }, ['name' => 'sxg']);
         $this->eventLoop();
     }
 
+
     public function checkHeartTime() {
+        echo "执行心跳检测了\r\n";
         foreach (self::$_connections as $idx => $fd) {
             /**@var TcpConnections $fd */
             if ($fd->checkHeartTime()) {

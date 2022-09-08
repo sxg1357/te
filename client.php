@@ -62,7 +62,7 @@ while (1) {
     for ($i = 0; $i < $clientNum; $i++) {
         $client = $clients[$i];
         for ($j = 0; $j < 1; $j++) {
-            $client->send("hello server,i'm client ".time());
+//            $client->send("hello server,i'm client ".time());
         }
 
         if (!$client->loop()) {

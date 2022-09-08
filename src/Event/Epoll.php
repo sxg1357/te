@@ -26,14 +26,13 @@ class Epoll implements Event
         $flag = $arg[1];
         $timerId = $arg[2];
         $userArg = $arg[3];
-
         echo "执行timerCallBack\r\n";
-        if ($flag == Event::EV_TIMER_ONCE){
+        if ($flag == Event::EVENT_TIMER_ONCE){
             $event = $this->_timers[$timerId][$flag];
             $event->del();
             unset($this->_timers[$timerId][$flag]);
         }
-        call_user_func_array($func,$userArg);
+        call_user_func_array($func,[$timerId, $userArg]);
     }
 
     public function add($fd, $flag, $func, $args = [])
@@ -43,26 +42,28 @@ class Epoll implements Event
             case self::READ:
                 $event = new \Event($this->_eventBase, $fd, \Event::READ|\Event::PERSIST, $func, $args);
                 if (!$event || !$event->add()) {
-                    fprintf(STDOUT, "事件添加失败\n");
+                    fprintf(STDOUT, "read事件添加失败\n");
                     print_r(error_get_last());
                     return false;
                 }
+                echo "read事件添加成功\r\n";
                 $this->_allEvents[(int)$fd][Event::READ] = $event;
-                break;
+                return true;
             case self::WRITE:
                 $event = new \Event($this->_eventBase, $fd, \Event::WRITE|\Event::PERSIST, $func, $args);
                 if (!$event || !$event->add()) {
-                    fprintf(STDOUT, "事件添加失败\n");
+                    fprintf(STDOUT, "write事件添加失败\n");
                     print_r(error_get_last());
                     return false;
                 }
+                echo "write事件添加成功\r\n";
                 $this->_allEvents[(int)$fd][Event::WRITE] = $event;
-                break;
+                return true;
             case self::EVENT_TIMER:
-            case self::EV_TIMER_ONCE:
+            case self::EVENT_TIMER_ONCE:
                 $timer_id = self::$_timerId;
                 $params = [$func, $flag, $timer_id, $args];
-                $event = new \Event($this->_eventBase, -1, self::EVENT_TIMER|\Event::PERSIST, [$this, "timerCallBack"], $params);
+                $event = new \Event($this->_eventBase, -1, \Event::TIMEOUT|\Event::PERSIST, [$this, "timerCallBack"], $params);
                 if (!$event || !$event->add($fd)) {
                     echo "定时事件添加失败\r\n";
                     return false;
@@ -70,7 +71,7 @@ class Epoll implements Event
                 echo "定时事件添加成功\r\n";
                 $this->_timers[$timer_id][$flag] = $event;
                 ++self::$_timerId;
-                break;
+                return $timer_id;
         }
     }
 
@@ -97,6 +98,14 @@ class Epoll implements Event
                 if (empty($this->_allEvents[(int)$fd])) {
                     unset($this->_allEvents[(int)$fd]);
                 }
+                break;
+            case self::EVENT_TIMER:
+            case self::EVENT_TIMER_ONCE:
+                if (isset($this->_timers[$fd][$flag])) {
+                    $this->_timers[$fd][$flag]->del();
+                    unset($this->_timers[$fd][$flag]);
+                }
+                echo "事件移除成功了\r\n";
                 break;
         }
 
