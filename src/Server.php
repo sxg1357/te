@@ -51,6 +51,7 @@ class Server {
         $this->_address = "tcp:$ip:$port";
         if (DIRECTORY_SEPARATOR == '/') {
             static::$_eventLoop = new Epoll();
+            print_r(1111);
         } else {
             static::$_eventLoop = new Select();
         }
@@ -97,13 +98,11 @@ class Server {
         $this->listen();
         self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
 //        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
-        $timer_id1 = self::$_eventLoop->add(2, Event::EVENT_TIMER, function ($timer_id, $args) {
-//            print_r($args);
-//            self::$_eventLoop->del($timer_id, Event::EVENT_TIMER);
-            echo "定时时间到了1 start\r\n";
-            echo time()."\r\n";
-            echo "定时时间到了1 end\r\n";
-        }, ['name' => 'sxg']);
+//        $timer_id1 = self::$_eventLoop->add(2, Event::EVENT_TIMER, function ($timer_id, $args) {
+//            echo "定时时间到了1 start\r\n";
+//            echo microtime(true)."\r\n";
+//            echo "定时时间到了1 end\r\n";
+//        }, ['name' => 'sxg']);
         $this->eventLoop();
     }
 

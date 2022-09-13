@@ -174,7 +174,9 @@ class TcpConnections {
             $this->_sendLen -= $writeLen;
             Server::$_eventLoop->add($this->_socketFd, Event::WRITE, [$this, "writeSocket"]);
         } else {
-            $this->close();
+            if (!is_resource($this->_socketFd || !feof($this->_socketFd))) {
+                $this->close();
+            }
         }
 
     }

@@ -42,7 +42,7 @@ class Select implements Event
                     unset($this->_timers[$timer_id]);
                 } else {
                     $runTime = microtime(true) + $fd;
-                    $this->_timers[$timer_id][$key][1] = $runTime;
+                    $this->_timers[$key][1] = $runTime;
                 }
                 call_user_func_array($func, [$timer_id, $args]);
             }
@@ -156,7 +156,7 @@ class Select implements Event
 
         set_error_handler(function (){});
         //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
-        $ret = stream_select($reads, $writes, $exps, 0, $this->_timeout);
+        $ret = stream_select($reads, $writes, $exps, 0, 0);
         restore_error_handler();
 
         if ($ret === false) {

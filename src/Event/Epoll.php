@@ -27,7 +27,7 @@ class Epoll implements Event
         $timerId = $arg[2];
         $userArg = $arg[3];
         echo "执行timerCallBack\r\n";
-        if ($flag == Event::EVENT_TIMER_ONCE){
+        if ($flag == Event::EVENT_TIMER_ONCE) {
             $event = $this->_timers[$timerId][$flag];
             $event->del();
             unset($this->_timers[$timerId][$flag]);
