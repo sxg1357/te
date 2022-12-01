@@ -16,6 +16,10 @@
     "require": {
       "ext-sockets": "*",
       "ext-pcntl": "*",
-      "ext-mbstring": "*"
+      "ext-mbstring": "*",
+      "ext-pdo": "*",
+      "ext-json": "*",
+      "ext-sysvmsg": "*",
+      "ext-posix": "*"
     }
 }
