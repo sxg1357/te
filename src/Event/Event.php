@@ -22,4 +22,5 @@ interface Event
     public function loop();
     public function clearTimer();
     public function clearSignalEvents();
+    public function exitLoop();
 }

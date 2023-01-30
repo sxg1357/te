@@ -11,8 +11,8 @@ namespace Socket\Ms\Event;
 class Epoll implements Event
 {
     public $_eventBase;
-    public $_allEvents;
-    public $_signalEvents;
+    public $_allEvents = [];
+    public $_signalEvents = [];
 
     public static $_timerId = 1;
     public $_timers = [];
@@ -72,6 +72,14 @@ class Epoll implements Event
                 $this->_timers[$timer_id][$flag] = $event;
                 ++self::$_timerId;
                 return $timer_id;
+            case self::EVENT_SIGNAL:
+                $event = new \Event($this->_eventBase, $fd, \Event::SIGNAL, $func, $args);
+                if (!$event || !$event->add()) {
+                    return false;
+                }
+                echo "信号事件添加成功\r\n";
+                $this->_signalEvents[(int)$fd] = $event;
+                return true;
         }
     }
 
@@ -107,6 +115,14 @@ class Epoll implements Event
                 }
                 echo "事件移除成功了\r\n";
                 break;
+            case self::EVENT_SIGNAL:
+                if (isset($this->_signalEvents[$fd])) {
+                    if ($this->_signalEvents[$fd]->del()) {
+                        unset($this->_signalEvents[$fd]);
+                        echo "信号移除成功";
+                    }
+                }
+                break;
         }
 
     }
@@ -121,10 +137,28 @@ class Epoll implements Event
     public function clearTimer()
     {
         // TODO: Implement clearTimer() method.
+        foreach ($this->_timers as $timerId => $event) {
+            if (current($event)->del()) {
+                echo "移除定时事件成功\r\n";
+            }
+        }
+        $this->_timers = [];
     }
 
     public function clearSignalEvents()
     {
         // TODO: Implement clearSignalEvents() method.
+        foreach ($this->_signalEvents as $fd => $event) {
+            if ($event->del()) {
+                echo "移除信号事件成功\r\n";
+            }
+        }
+        $this->_signalEvents = [];
+    }
+
+    public function exitLoop()
+    {
+        // TODO: Implement exitLoop() method.
+        $this->_eventBase->stop();
     }
 }

@@ -19,6 +19,7 @@ class ms {
         $this->_server->on("connect", [$this, "onConnect"]); 
         $this->_server->on("receive", [$this, "onReceive"]);
         $this->_server->on("close", [$this, "onClose"]);
+        $this->_server->settings(['workerNum' => 1]);
         $this->_server->start();
     }
 

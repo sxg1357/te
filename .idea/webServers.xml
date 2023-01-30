@@ -3,7 +3,7 @@
   <component name="WebServers">
     <option name="servers">
       <webServer id="34c34d32-a583-456a-967a-9b6014ea014b" name="basenode" url="">
-        <fileTransfer rootFolder="/User/sxg/www/internetMessage" accessType="SFTP" host="192.168.188.100" port="22" sshConfigId="c20b3519-b308-4c71-8d7d-7e745745d04d" sshConfig="root@192.168.188.100:22 password">
+        <fileTransfer rootFolder="/home/sxg/te" accessType="SFTP" host="175.178.132.26" port="22" sshConfigId="c20b3519-b308-4c71-8d7d-7e745745d04d" sshConfig="root@175.178.132.26:22 password">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>

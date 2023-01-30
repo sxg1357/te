@@ -11,8 +11,8 @@ namespace Socket\Ms\Event;
 class Select implements Event
 {
     public $_eventBase;
-    public $_allEvents;
-    public $_signalEvents;
+    public $_allEvents = [];
+    public $_signalEvents = [];
 
     public $_readFds = [];
     public $_writeFds = [];
@@ -22,9 +22,18 @@ class Select implements Event
     public static $_timerId = 1;
     public $_timeout = 100000000;   //1秒=1000毫秒 1毫秒=1000微妙 100秒 微妙级别的定时
 
+    public $_run = true;
+
     public function __construct()
     {
 
+    }
+
+    public function signalHandler($sigNum) {
+        $callback = $this->_signalEvents[$sigNum];
+        if (is_callable($callback[0])) {
+            call_user_func_array($callback[0], [$sigNum]);
+        }
     }
 
     public function timerCallBack() {
@@ -75,6 +84,13 @@ class Select implements Event
                 }
                 ++self::$_timerId;
                 return $timer_id;
+            case self::EVENT_SIGNAL:
+                $params = [$func, $args];
+                $this->_signalEvents[$fd] = $params;
+                if (pcntl_signal($fd, [$this, 'signalHandler'], false)) {
+                    fprintf(STDOUT, "pid %d add signal %d event successfully\r\n", posix_getpid(), $fd);
+                }
+                return true;
         }
     }
 
@@ -109,7 +125,7 @@ class Select implements Event
     public function loop()
     {
         // TODO: Implement loop() method.
-        while (1) {
+        while ($this->_run) {
             $reads = $this->_readFds;
             $writes = $this->_writeFds;
             $exps = $this->_expFds;
@@ -187,10 +203,25 @@ class Select implements Event
     public function clearTimer()
     {
         // TODO: Implement clearTimer() method.
+        $this->_timers = [];
     }
 
     public function clearSignalEvents()
     {
         // TODO: Implement clearSignalEvents() method.
+        $this->_signalEvents = [];
+    }
+
+    public function exitLoop()
+    {
+        // TODO: Implement exitLoop() method.
+        $this->_run = false;
+        $this->_signalEvents = [];
+        $this->_timers = [];
+        $this->_allEvents = [];
+        $this->_writeFds = [];
+        $this->_readFds = [];
+        $this->_expFds = [];
+        return true;
     }
 }

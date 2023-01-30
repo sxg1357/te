@@ -119,6 +119,15 @@ class TcpConnections {
         $server->removeClient($this->_socketFd);
         $this->_status = self::STATUS_CLOSE;
         $this->_socketFd = null;
+        $this->_sendLen = 0;
+        $this->_sendBuffer = '';
+        $this->_sendBuffer = 0;
+        $this->_sendBufferSize = 0;
+
+        $this->_recvBufferFull = 0;
+        $this->_recvBuffer = '';
+        $this->_recvBufferSize = 0;
+        $this->_recvLen = 0;
     }
 
     public function checkHeartTime() {
@@ -174,7 +183,7 @@ class TcpConnections {
             $this->_sendLen -= $writeLen;
             Server::$_eventLoop->add($this->_socketFd, Event::WRITE, [$this, "writeSocket"]);
         } else {
-            if (!is_resource($this->_socketFd || !feof($this->_socketFd))) {
+            if (!is_resource($this->_socketFd || feof($this->_socketFd))) {
                 $this->close();
             }
         }

@@ -27,6 +27,12 @@ class Server {
 
     public $_starttime;
 
+    public static $_startFile;
+    public static $_pidFile;
+    public static $_logFile;
+    public $_settings = [];
+    public $_pidMap = [];
+
     public $_protocols = [
         "stream" => "Socket\Ms\Protocols\Stream",
         "text" => "Socket\Ms\Protocols\Text",
@@ -51,10 +57,13 @@ class Server {
         $this->_address = "tcp:$ip:$port";
         if (DIRECTORY_SEPARATOR == '/') {
             static::$_eventLoop = new Epoll();
-            print_r(1111);
         } else {
             static::$_eventLoop = new Select();
         }
+    }
+
+    public function settings($settings) {
+        $this->_settings = $settings;
     }
 
     public function onClientJoin() {
@@ -94,8 +103,148 @@ class Server {
         fprintf(STDOUT,"listen on:%s\n", $this->_address);
     }
 
+    public function signalHandler($sigNum) {
+        $masterPid = file_get_contents(self::$_pidFile);
+        switch ($sigNum) {
+            case SIGINT:
+            case SIGTERM:
+            case SIGQUIT:
+                if ($masterPid == posix_getpid()) {
+                    foreach ($this->_pidMap as $pid) {
+                        posix_kill($pid, $sigNum);
+                    }
+                } else {
+                    //子进程收到中断信号
+                    static::$_eventLoop->del($this->_socket, Event::READ);
+                    set_error_handler(function (){});
+                    fclose($this->_socket);
+                    restore_error_handler();
+                    $this->_socket = null;
+                    foreach (static::$_connections as $connection) {
+                        $connection->close();
+                    }
+                    static::$_connections = [];
+                    static::$_eventLoop->clearTimer();
+                    static::$_eventLoop->clearSignalEvents();
+                    if (static::$_eventLoop->exitLoop()) {
+                        fprintf(STDOUT, "<pid:%d> exit ok\r\n", posix_getpid());
+                    }
+                }
+            break;
+        }
+    }
+
     public function start() {
+        $this->init();
+        global $argv;
+        switch ($argv[1]) {
+            case 'start':
+                if (is_file(self::$_pidFile)) {
+                    $masterPid = file_get_contents(self::$_pidFile);
+                } else {
+                    $masterPid = 0;
+                }
+                $masterProcessAlive = $masterPid && posix_kill($masterPid, 0) && $masterPid != posix_getpid();
+                if ($masterProcessAlive) {
+                    exit('server already running');
+                }
+                $this->forkWorker();
+                $this->saveMasterPid();
+                $this->installSignalHandler();
+                $this->masterWorker();
+                break;
+            case 'stop':
+                $masterPid = file_get_contents(self::$_pidFile);
+                if ($masterPid && posix_kill($masterPid, 0)) {
+                    posix_kill($masterPid, SIGINT);
+                    echo "发送SIGINT中断信号了\r\n";
+                    $timeout = 5;
+                    $stopTime = time();
+                    while (1) {
+                        $masterPidAlive = $masterPid && posix_kill($masterPid, 0) && $masterPid != posix_getpid();
+                        if ($masterPidAlive) {
+                            if (time() - $stopTime > $timeout) {
+                                echo "server stop failure\r\n";
+                                break;
+                            }
+                            sleep(1);
+                            continue;
+                        }
+                    }
+                } else {
+                    exit("server not running\r\n");
+                }
+                break;
+            default:
+                $text = "php ".pathinfo(self::$_startFile)['filename'].".php - [start|stop]\r\n";
+                exit($text);
+        }
+    }
+
+    public function masterWorker() {
+        while (1) {
+            pcntl_signal_dispatch();
+            $pid = pcntl_wait($status);
+            pcntl_signal_dispatch();
+            if ($pid > 0) {
+                unset($this->_pidMap[$pid]);
+            }
+            if (empty($this->_pidMap)) {
+                break;
+            }
+        }
+        fprintf(STDOUT, "master process <pid:%d>exit ok\r\n", posix_getpid());
+        exit(0);
+    }
+
+    public function saveMasterPid() {
+        $masterPid = getmypid();
+        file_put_contents(self::$_pidFile, $masterPid);
+    }
+
+    public function installSignalHandler() {
+        pcntl_signal(SIGINT, [$this, 'signalHandler'], false);
+        pcntl_signal(SIGQUIT, [$this, 'signalHandler'], false);
+        pcntl_signal(SIGTERM, [$this, 'signalHandler'], false);
+    }
+
+    public function init() {
+        $trace = debug_backtrace();
+        $startFile = array_pop($trace)['file'];
+        self::$_startFile = $startFile;
+        self::$_pidFile = pathinfo($startFile)['filename'].'.pid';
+        self::$_logFile = pathinfo($startFile)['filename'].'.log';
+        if (!file_exists(self::$_logFile)) {
+            touch(self::$_logFile);
+            chown(self::$_logFile, posix_getuid());
+        }
+    }
+
+    public function forkWorker() {
         $this->listen();
+        $workerNum = 1;
+        if (isset($this->_settings['workerNum']) && $this->_settings['workerNum']) {
+            $workerNum = $this->_settings['workerNum'];
+        }
+        for ($i = 0; $i < $workerNum; $i++) {
+            $pid = pcntl_fork();
+            if (0 == $pid) {
+                $this->worker();
+            } else {
+                $this->_pidMap[$pid] = $pid;
+            }
+        }
+    }
+
+    public function worker() {
+        pcntl_signal(SIGINT, SIG_IGN, false);
+        pcntl_signal(SIGTERM, SIG_IGN, false);
+        pcntl_signal(SIGQUIT, SIG_IGN, false);
+
+        static::$_eventLoop->add(SIGINT, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
+        static::$_eventLoop->add(SIGQUIT, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
+        static::$_eventLoop->add(SIGTERM, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
+
         self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
 //        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
 //        $timer_id1 = self::$_eventLoop->add(2, Event::EVENT_TIMER, function ($timer_id, $args) {
@@ -104,8 +253,10 @@ class Server {
 //            echo "定时时间到了1 end\r\n";
 //        }, ['name' => 'sxg']);
         $this->eventLoop();
-    }
 
+        fprintf(STDOUT, "<workerPid:%d>exit success\r\n", posix_getpid());
+        exit(0);
+    }
 
     public function checkHeartTime() {
         echo "执行心跳检测了\r\n";
