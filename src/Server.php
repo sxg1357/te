@@ -170,6 +170,8 @@ class Server {
                             sleep(1);
                             continue;
                         }
+                        echo "server stop successfully\r\n";
+                        exit(0);
                     }
                 } else {
                     exit("server not running\r\n");
