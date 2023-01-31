@@ -33,6 +33,11 @@ class Server {
     public $_settings = [];
     public $_pidMap = [];
 
+    public static $_status;
+    const STATUS_START = 1;
+    const STATUS_RUNNING = 2;
+    const STATUS_SHUTDOWN = 3;
+
     public $_protocols = [
         "stream" => "Socket\Ms\Protocols\Stream",
         "text" => "Socket\Ms\Protocols\Text",
@@ -115,6 +120,7 @@ class Server {
                     foreach ($this->_pidMap as $pid) {
                         posix_kill($pid, $sigNum);
                     }
+                    self::$_status = self::STATUS_SHUTDOWN;
                 } else {
                     //子进程收到中断信号
                     static::$_eventLoop->del($this->_socket, Event::READ);
@@ -123,6 +129,7 @@ class Server {
                     foreach (static::$_connections as $connection) {
                         $connection->close();
                     }
+                    static::$_status = self::STATUS_SHUTDOWN;
                     static::$_connections = [];
                     static::$_eventLoop->clearTimer();
                     static::$_eventLoop->clearSignalEvents();
@@ -135,6 +142,7 @@ class Server {
     }
 
     public function start() {
+        self::$_status = self::STATUS_START;
         $this->init();
         global $argv;
         switch ($argv[1]) {
@@ -152,6 +160,7 @@ class Server {
                 $this->installSignalHandler();
                 $this->listen();
                 $this->forkWorker();
+                self::$_status = self::STATUS_RUNNING;
                 $this->masterWorker();
                 break;
             case 'stop':
@@ -184,6 +193,16 @@ class Server {
         }
     }
 
+    public function reloadWorker() {
+        echo "重启进程\r\n";
+        $pid = pcntl_fork();
+        if (0 == $pid) {
+            $this->worker();
+        } else {
+            $this->_pidMap[$pid] = $pid;
+        }
+    }
+
     public function masterWorker() {
         while (1) {
             pcntl_signal_dispatch();
@@ -191,6 +210,9 @@ class Server {
             pcntl_signal_dispatch();
             if ($pid > 0) {
                 unset($this->_pidMap[$pid]);
+            }
+            if (self::$_status != self::STATUS_SHUTDOWN) {
+                $this->reloadWorker();
             }
             if (empty($this->_pidMap)) {
                 break;
@@ -226,6 +248,7 @@ class Server {
     }
 
     public function forkWorker() {
+        self::$_status = self::STATUS_RUNNING;
         $workerNum = 1;
         if (isset($this->_settings['workerNum']) && $this->_settings['workerNum']) {
             $workerNum = $this->_settings['workerNum'];
