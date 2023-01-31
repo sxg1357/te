@@ -55,11 +55,12 @@ class Server {
         }
         $this->_starttime = time();
         $this->_address = "tcp:$ip:$port";
-        if (DIRECTORY_SEPARATOR == '/') {
-            static::$_eventLoop = new Epoll();
-        } else {
-            static::$_eventLoop = new Select();
-        }
+//        if (DIRECTORY_SEPARATOR == '/') {
+//            static::$_eventLoop = new Epoll();
+//        } else {
+//            static::$_eventLoop = new Select();
+//        }
+        static::$_eventLoop = new Select();
     }
 
     public function settings($settings) {
@@ -104,6 +105,7 @@ class Server {
     }
 
     public function signalHandler($sigNum) {
+        fprintf(STDOUT, "<pid:%d>recv signo:%d\r\n", posix_getpid(), $sigNum);
         $masterPid = file_get_contents(self::$_pidFile);
         switch ($sigNum) {
             case SIGINT:
@@ -117,9 +119,7 @@ class Server {
                     //子进程收到中断信号
                     static::$_eventLoop->del($this->_socket, Event::READ);
                     set_error_handler(function (){});
-                    fclose($this->_socket);
                     restore_error_handler();
-                    $this->_socket = null;
                     foreach (static::$_connections as $connection) {
                         $connection->close();
                     }
@@ -148,9 +148,10 @@ class Server {
                 if ($masterProcessAlive) {
                     exit('server already running');
                 }
-                $this->forkWorker();
                 $this->saveMasterPid();
                 $this->installSignalHandler();
+                $this->listen();
+                $this->forkWorker();
                 $this->masterWorker();
                 break;
             case 'stop':
@@ -196,6 +197,8 @@ class Server {
             }
         }
         fprintf(STDOUT, "master process <pid:%d>exit ok\r\n", posix_getpid());
+        fclose($this->_socket);
+        $this->_socket = null;
         exit(0);
     }
 
@@ -223,7 +226,6 @@ class Server {
     }
 
     public function forkWorker() {
-        $this->listen();
         $workerNum = 1;
         if (isset($this->_settings['workerNum']) && $this->_settings['workerNum']) {
             $workerNum = $this->_settings['workerNum'];
@@ -248,7 +250,7 @@ class Server {
         static::$_eventLoop->add(SIGTERM, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
 
         self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
-//        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
+        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
 //        $timer_id1 = self::$_eventLoop->add(2, Event::EVENT_TIMER, function ($timer_id, $args) {
 //            echo "定时时间到了1 start\r\n";
 //            echo microtime(true)."\r\n";

@@ -30,9 +30,11 @@ class Select implements Event
     }
 
     public function signalHandler($sigNum) {
-        $callback = $this->_signalEvents[$sigNum];
-        if (is_callable($callback[0])) {
-            call_user_func_array($callback[0], [$sigNum]);
+        if (isset($this->_signalEvents[$sigNum])) {
+            $callback = $this->_signalEvents[$sigNum];
+            if (is_callable($callback[0])) {
+                call_user_func_array($callback[0], [$sigNum]);
+            }
         }
     }
 
@@ -82,9 +84,11 @@ class Select implements Event
                 if ($this->_timeout >= $selectTime) {
                     $this->_timeout = $selectTime;
                 }
+                echo "定时事件添加成功\r\n";
                 ++self::$_timerId;
                 return $timer_id;
             case self::EVENT_SIGNAL:
+                echo "添加中断信号事件成功".$fd."\r\n";
                 $params = [$func, $args];
                 $this->_signalEvents[$fd] = $params;
                 if (pcntl_signal($fd, [$this, 'signalHandler'], false)) {
@@ -119,6 +123,11 @@ class Select implements Event
                     unset($this->_timers[$fd]);
                 }
                 break;
+            case self::EVENT_SIGNAL:
+                if (isset($this->_signalEvents[$fd])) {
+                    unset($this->_signalEvents[$fd]);
+                    pcntl_signal($fd, SIG_DFL);
+                }
         }
     }
 
@@ -129,7 +138,7 @@ class Select implements Event
             $reads = $this->_readFds;
             $writes = $this->_writeFds;
             $exps = $this->_expFds;
-
+            pcntl_signal_dispatch();
             set_error_handler(function (){});
             //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
             $ret = stream_select($reads, $writes, $exps, 0, $this->_timeout);
@@ -139,8 +148,12 @@ class Select implements Event
                 $this->timerCallBack();
             }
 
-            if ($ret === false) {
-                break;
+//            if ($ret === false) {
+//                echo "select interrupt by signal\r\n";
+//                break;
+//            }
+            if (!$ret) {
+                continue;
             }
 
             if ($reads) {
@@ -164,60 +177,26 @@ class Select implements Event
         }
     }
 
-    public function loop1()
-    {
-        $reads = $this->_readFds;
-        $writes = $this->_writeFds;
-        $exps = $this->_expFds;
-
-        set_error_handler(function (){});
-        //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
-        $ret = stream_select($reads, $writes, $exps, 0, 0);
-        restore_error_handler();
-
-        if ($ret === false) {
-            return false;
-        }
-
-        if ($reads) {
-            foreach ($reads as $fd) {
-                $fdKey = (int)$fd;
-                if (isset($this->_allEvents[$fdKey][self::READ])) {
-                    $callback = $this->_allEvents[$fdKey][self::READ];
-                    call_user_func_array($callback[0], $callback[1]);
-                }
-            }
-        }
-        if ($writes) {
-            foreach ($writes as $fd) {
-                $fdKey = (int)$fd;
-                if (isset($this->_allEvents[$fdKey][self::WRITE])) {
-                    $callback = $this->_allEvents[$fdKey][self::WRITE];
-                    call_user_func_array($callback[0], $callback[1]);
-                }
-            }
-        }
-        return true;
-    }
 
     public function clearTimer()
     {
         // TODO: Implement clearTimer() method.
+        echo "clear timer events successfully\r\n";
         $this->_timers = [];
     }
 
     public function clearSignalEvents()
     {
         // TODO: Implement clearSignalEvents() method.
+        echo "clear signal events successfully\r\n";
         $this->_signalEvents = [];
     }
 
     public function exitLoop()
     {
         // TODO: Implement exitLoop() method.
+        echo "select exit loop successfully\r\n";
         $this->_run = false;
-        $this->_signalEvents = [];
-        $this->_timers = [];
         $this->_allEvents = [];
         $this->_writeFds = [];
         $this->_readFds = [];
