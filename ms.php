@@ -20,6 +20,10 @@ class ms {
         $this->_server->on("receive", [$this, "onReceive"]);
         $this->_server->on("close", [$this, "onClose"]);
         $this->_server->settings(['workerNum' => 2]);
+        $this->_server->on("masterStart", [$this, "masterStart"]);
+        $this->_server->on("masterShutdown", [$this, "masterShutdown"]);
+        $this->_server->on("workerStart", [$this, "workerStart"]);
+        $this->_server->on("workerStop", [$this, "workerStop"]);
         $this->_server->start();
     }
 
@@ -35,6 +39,22 @@ class ms {
     public function onClose(Socket\Ms\Server $Server, Socket\Ms\TcpConnections $connection) {
         fprintf(STDOUT, "有客户端连接关闭了\n");
         $Server->removeClient($connection->_socketFd);
+    }
+
+    public function masterStart(Socket\Ms\Server $Server) {
+        fprintf(STDOUT, "master server <pid:%d> start working\r\n", posix_getpid());
+    }
+
+    public function masterShutdown(Socket\Ms\Server $Server) {
+        fprintf(STDOUT, "master server <pid:%d> shutdown\r\n", posix_getpid());
+    }
+
+    public function workerStart(Socket\Ms\Server $Server) {
+        fprintf(STDOUT, "worker <pid:%d> start working\r\n", posix_getpid());
+    }
+
+    public function workerStop(Socket\Ms\Server $Server) {
+        fprintf(STDOUT, "worker <pid:%d> stop\r\n", posix_getpid());
     }
 }
 

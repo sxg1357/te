@@ -60,12 +60,11 @@ class Server {
         }
         $this->_starttime = time();
         $this->_address = "tcp:$ip:$port";
-//        if (DIRECTORY_SEPARATOR == '/') {
-//            static::$_eventLoop = new Epoll();
-//        } else {
-//            static::$_eventLoop = new Select();
-//        }
-        static::$_eventLoop = new Select();
+        if (DIRECTORY_SEPARATOR == '/') {
+            static::$_eventLoop = new Epoll();
+        } else {
+            static::$_eventLoop = new Select();
+        }
     }
 
     public function settings($settings) {
@@ -145,6 +144,7 @@ class Server {
         self::$_status = self::STATUS_START;
         $this->init();
         global $argv;
+        set_error_handler(function (){});
         switch ($argv[1]) {
             case 'start':
                 if (is_file(self::$_pidFile)) {
@@ -156,6 +156,7 @@ class Server {
                 if ($masterProcessAlive) {
                     exit('server already running');
                 }
+                $this->eventCallBak("masterStart", [$this]);
                 $this->saveMasterPid();
                 $this->installSignalHandler();
                 $this->listen();
@@ -191,6 +192,7 @@ class Server {
                 $text = "php ".pathinfo(self::$_startFile)['filename'].".php - [start|stop]\r\n";
                 exit($text);
         }
+        restore_error_handler();
     }
 
     public function reloadWorker() {
@@ -218,7 +220,7 @@ class Server {
                 break;
             }
         }
-        fprintf(STDOUT, "master process <pid:%d>exit ok\r\n", posix_getpid());
+        $this->eventCallBak("masterShutdown", [$this]);
         fclose($this->_socket);
         $this->_socket = null;
         exit(0);
@@ -248,7 +250,6 @@ class Server {
     }
 
     public function forkWorker() {
-        self::$_status = self::STATUS_RUNNING;
         $workerNum = 1;
         if (isset($this->_settings['workerNum']) && $this->_settings['workerNum']) {
             $workerNum = $this->_settings['workerNum'];
@@ -264,6 +265,7 @@ class Server {
     }
 
     public function worker() {
+        self::$_status = self::STATUS_RUNNING;
         pcntl_signal(SIGINT, SIG_IGN, false);
         pcntl_signal(SIGTERM, SIG_IGN, false);
         pcntl_signal(SIGQUIT, SIG_IGN, false);
@@ -274,14 +276,9 @@ class Server {
 
         self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
         self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
-//        $timer_id1 = self::$_eventLoop->add(2, Event::EVENT_TIMER, function ($timer_id, $args) {
-//            echo "定时时间到了1 start\r\n";
-//            echo microtime(true)."\r\n";
-//            echo "定时时间到了1 end\r\n";
-//        }, ['name' => 'sxg']);
+        $this->eventCallBak("workerStart", [$this]);
         $this->eventLoop();
-
-        fprintf(STDOUT, "<workerPid:%d>exit success\r\n", posix_getpid());
+        $this->eventCallBak("workerStop", [$this]);
         exit(0);
     }
 
@@ -298,62 +295,6 @@ class Server {
     public function eventLoop() {
         static::$_eventLoop->loop();
     }
-
-//    public function loop() {
-//        $readFds[] = $this->_socket;
-//        while (1) {
-//            $reads = $readFds;
-//            $writes = [];
-//            $exps = [];
-//
-//            $this->statistics();
-////            $this->checkHeartTime();
-//
-//            if (!empty(self::$_connections)) {
-//                foreach (self::$_connections as $idx => $connection) {
-//                    $socket_fd = $connection->_socketFd;
-//                    if (is_resource($socket_fd)) {
-//                        $reads[] = $socket_fd;
-////                        $writes[] = $socket_fd;
-//                    }
-//                }
-//            }
-//            set_error_handler(function (){});
-//            //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
-//            $ret = stream_select($reads, $writes, $exps, 0, 100);
-//            restore_error_handler();
-//            if ($ret === false) {
-//                break;
-//            }
-//            if ($reads) {
-//                foreach ($reads as $fd) {
-//                    if ($fd == $this->_socket) {
-//                        $this->accept();
-//                    } else {
-//                        /**@var TcpConnections $connection */
-//                        if (isset(self::$_connections[(int)$fd])) {
-//                            $connection = self::$_connections[(int)$fd];
-//                            if ($connection->isConnected()) {
-//                                $connection->recvSocket();
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//
-//            if ($writes) {
-//                foreach ($writes as $fd) {
-//                    if (isset(self::$_connections[(int)$fd])) {
-//                        /**@var TcpConnections $connection*/
-//                        $connection = self::$_connections[(int)$fd];
-//                        if ($connection->isConnected()) {
-//                            $connection->writeSocket();
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
 
     public function eventCallBak($eventName, $args = []) {
         if (isset($this->_events[$eventName]) && is_callable($this->_events[$eventName])) {
