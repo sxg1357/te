@@ -60,11 +60,6 @@ class Server {
         }
         $this->_starttime = time();
         $this->_address = "tcp:$ip:$port";
-        if (DIRECTORY_SEPARATOR == '/') {
-            static::$_eventLoop = new Epoll();
-        } else {
-            static::$_eventLoop = new Select();
-        }
     }
 
     public function settings($settings) {
@@ -98,6 +93,7 @@ class Server {
     public function listen() {
         $flags = STREAM_SERVER_LISTEN|STREAM_SERVER_BIND;
         $option['socket']['backlog'] = 102400;   //ulimit -a
+        $option['socket']['so_reuseport'] = 1;
         $context = stream_context_create($option);    //setsocketopt
         $this->_socket = stream_socket_server($this->_address, $error_code, $error_message, $flags, $context);
         stream_set_blocking($this->_socket, 0);
@@ -157,9 +153,9 @@ class Server {
                     exit('server already running');
                 }
                 $this->eventCallBak("masterStart", [$this]);
+                cli_set_process_title("te/master");
                 $this->saveMasterPid();
                 $this->installSignalHandler();
-                $this->listen();
                 $this->forkWorker();
                 self::$_status = self::STATUS_RUNNING;
                 $this->masterWorker();
@@ -271,6 +267,15 @@ class Server {
         } else {
             self::$_status = self::STATUS_RUNNING;
         }
+        $this->listen();
+        //注意这里,从初始化方法调位至这里,创建不同的epoll对象,否则会出错的
+        if (DIRECTORY_SEPARATOR == '/') {
+            static::$_eventLoop = new Epoll();
+        } else {
+            static::$_eventLoop = new Select();
+        }
+        cli_set_process_title("te/worker");
+
         pcntl_signal(SIGINT, SIG_IGN, false);
         pcntl_signal(SIGTERM, SIG_IGN, false);
         pcntl_signal(SIGQUIT, SIG_IGN, false);
