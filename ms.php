@@ -24,6 +24,7 @@ class ms {
         $this->_server->on("masterShutdown", [$this, "masterShutdown"]);
         $this->_server->on("workerStart", [$this, "workerStart"]);
         $this->_server->on("workerStop", [$this, "workerStop"]);
+        $this->_server->on("workerReload", [$this, "workerReload"]);
         $this->_server->start();
     }
 
@@ -55,6 +56,10 @@ class ms {
 
     public function workerStop(Socket\Ms\Server $Server) {
         fprintf(STDOUT, "worker <pid:%d> stop\r\n", posix_getpid());
+    }
+
+    public function workerReload(Socket\Ms\Server $Server) {
+        fprintf(STDOUT, "worker <pid:%d> reload\r\n", posix_getpid());
     }
 }
 

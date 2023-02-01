@@ -265,7 +265,12 @@ class Server {
     }
 
     public function worker() {
-        self::$_status = self::STATUS_RUNNING;
+        if (self::$_status == self::STATUS_RUNNING) {
+            //说明是重新启动的worker进程
+            $this->eventCallBak("workerReload", [$this]);
+        } else {
+            self::$_status = self::STATUS_RUNNING;
+        }
         pcntl_signal(SIGINT, SIG_IGN, false);
         pcntl_signal(SIGTERM, SIG_IGN, false);
         pcntl_signal(SIGQUIT, SIG_IGN, false);
@@ -275,7 +280,7 @@ class Server {
         static::$_eventLoop->add(SIGTERM, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
 
         self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
-        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
+//        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
         $this->eventCallBak("workerStart", [$this]);
         $this->eventLoop();
         $this->eventCallBak("workerStop", [$this]);
