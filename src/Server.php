@@ -120,6 +120,8 @@ class Server {
                     //子进程收到中断信号
                     static::$_eventLoop->del($this->_socket, Event::READ);
                     set_error_handler(function (){});
+                    fclose($this->_socket);
+                    $this->_socket = null;
                     restore_error_handler();
                     foreach (static::$_connections as $connection) {
                         $connection->close();
@@ -217,8 +219,6 @@ class Server {
             }
         }
         $this->eventCallBak("masterShutdown", [$this]);
-        fclose($this->_socket);
-        $this->_socket = null;
         exit(0);
     }
 

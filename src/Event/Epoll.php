@@ -40,6 +40,7 @@ class Epoll implements Event
         // TODO: Implement add() method.
         switch ($flag) {
             case self::READ:
+                //stream resource, socket resource(有问题), or numeric file descriptor
                 $event = new \Event($this->_eventBase, $fd, \Event::READ|\Event::PERSIST, $func, $args);
                 if (!$event || !$event->add()) {
                     fprintf(STDOUT, "read事件添加失败\n");
