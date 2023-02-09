@@ -47,7 +47,7 @@ class Epoll implements Event
                     print_r(error_get_last());
                     return false;
                 }
-                echo "read事件添加成功\r\n";
+//                echo "read事件添加成功\r\n";
                 $this->_allEvents[(int)$fd][Event::READ] = $event;
                 return true;
             case self::WRITE:
@@ -57,7 +57,7 @@ class Epoll implements Event
                     print_r(error_get_last());
                     return false;
                 }
-                echo "write事件添加成功\r\n";
+//                echo "write事件添加成功\r\n";
                 $this->_allEvents[(int)$fd][Event::WRITE] = $event;
                 return true;
             case self::EVENT_TIMER:
@@ -69,7 +69,7 @@ class Epoll implements Event
                     echo "定时事件添加失败\r\n";
                     return false;
                 }
-                echo "定时事件添加成功\r\n";
+//                echo "定时事件添加成功\r\n";
                 $this->_timers[$timer_id][$flag] = $event;
                 ++self::$_timerId;
                 return $timer_id;
@@ -78,7 +78,7 @@ class Epoll implements Event
                 if (!$event || !$event->add()) {
                     return false;
                 }
-                echo "信号事件添加成功\r\n";
+//                echo "信号事件添加成功\r\n";
                 $this->_signalEvents[(int)$fd] = $event;
                 return true;
         }
@@ -114,13 +114,13 @@ class Epoll implements Event
                     $this->_timers[$fd][$flag]->del();
                     unset($this->_timers[$fd][$flag]);
                 }
-                echo "事件移除成功了\r\n";
+//                echo "事件移除成功了\r\n";
                 break;
             case self::EVENT_SIGNAL:
                 if (isset($this->_signalEvents[$fd])) {
                     if ($this->_signalEvents[$fd]->del()) {
                         unset($this->_signalEvents[$fd]);
-                        echo "信号移除成功";
+//                        echo "信号移除成功";
                     }
                 }
                 break;
@@ -131,7 +131,7 @@ class Epoll implements Event
     public function loop()
     {
         // TODO: Implement loop() method.
-        echo "执行事件循环了\r\n";
+//        echo "执行事件循环了\r\n";
         return $this->_eventBase->loop();
     }
 
@@ -140,7 +140,7 @@ class Epoll implements Event
         // TODO: Implement clearTimer() method.
         foreach ($this->_timers as $timerId => $event) {
             if (current($event)->del()) {
-                echo "移除定时事件成功\r\n";
+//                echo "移除定时事件成功\r\n";
             }
         }
         $this->_timers = [];
@@ -151,7 +151,7 @@ class Epoll implements Event
         // TODO: Implement clearSignalEvents() method.
         foreach ($this->_signalEvents as $fd => $event) {
             if ($event->del()) {
-                echo "移除信号事件成功\r\n";
+//                echo "移除信号事件成功\r\n";
             }
         }
         $this->_signalEvents = [];

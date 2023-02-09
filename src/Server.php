@@ -17,6 +17,7 @@ class Server {
     public $_address;
     public $_socket;
     public static $_connections = [];
+    public static $_udpConnections = [];
     public $_events = [];
 
     public $_protocol = null;
@@ -37,6 +38,8 @@ class Server {
     const STATUS_START = 1;
     const STATUS_RUNNING = 2;
     const STATUS_SHUTDOWN = 3;
+
+    public $unix_socket;
 
     public $_protocols = [
         "stream" => "Socket\Ms\Protocols\Stream",
@@ -138,6 +141,20 @@ class Server {
         }
     }
 
+    public function taskSignalHandler() {
+        //子进程收到中断信号
+        static::$_eventLoop->del($this->unix_socket, Event::READ);
+        set_error_handler(function (){});
+        fclose($this->unix_socket);
+        $this->unix_socket = null;
+        restore_error_handler();
+        static::$_eventLoop->clearTimer();
+        static::$_eventLoop->clearSignalEvents();
+        if (static::$_eventLoop->exitLoop()) {
+            fprintf(STDOUT, "<pid:%d> task process exit ok\r\n", posix_getpid());
+        }
+    }
+
     public function start() {
         self::$_status = self::STATUS_START;
         $this->init();
@@ -159,6 +176,7 @@ class Server {
                 $this->saveMasterPid();
                 $this->installSignalHandler();
                 $this->forkWorker();
+                $this->forkTask();
                 self::$_status = self::STATUS_RUNNING;
                 $this->masterWorker();
                 break;
@@ -260,6 +278,21 @@ class Server {
         }
     }
 
+    public function forkTask() {
+        $taskNum = 1;
+        if (isset($this->_settings['taskNum'])) {
+            $taskNum = $this->_settings['taskNum'];
+        }
+        for ($i = 0; $i < $taskNum; $i++) {
+            $pid = pcntl_fork();
+            if (0 == $pid) {
+                $this->tasker($i + 1);
+            } else {
+                $this->_pidMap[$pid] = $pid;
+            }
+        }
+    }
+
     public function worker() {
         if (self::$_status == self::STATUS_RUNNING) {
             //说明是重新启动的worker进程
@@ -290,6 +323,52 @@ class Server {
         $this->eventLoop();
         $this->eventCallBak("workerStop", [$this]);
         exit(0);
+    }
+
+    public function tasker($i) {
+        self::$_status = self::STATUS_RUNNING;
+        fprintf(STDOUT, "task process <pid:%d> start\r\n", posix_getpid());
+        cli_set_process_title("te/task");
+        $unix_server_socket_file = $this->_settings['unix_server_socket_file'].$i;
+        if (file_exists($unix_server_socket_file)) {
+            unlink($unix_server_socket_file);
+        }
+        $this->unix_socket = socket_create(AF_UNIX, SOCK_DGRAM, 0);
+        socket_bind($this->unix_socket, $unix_server_socket_file);
+        $stream = socket_export_stream($this->unix_socket);
+        stream_set_blocking($stream, 0);
+
+        if (DIRECTORY_SEPARATOR == "/" ) {
+            static::$_eventLoop = new Epoll();
+        } else {
+            static::$_eventLoop = new Select();
+        }
+
+        pcntl_signal(SIGINT, SIG_IGN, false);
+        pcntl_signal(SIGTERM, SIG_IGN, false);
+        pcntl_signal(SIGQUIT, SIG_IGN, false);
+
+        static::$_eventLoop->add(SIGINT, Event::EVENT_SIGNAL, [$this, "taskSignalHandler"]);
+        static::$_eventLoop->add(SIGQUIT, Event::EVENT_SIGNAL, [$this, "taskSignalHandler"]);
+        static::$_eventLoop->add(SIGTERM, Event::EVENT_SIGNAL, [$this, "taskSignalHandler"]);
+        self::$_eventLoop->add($stream, Event::READ, [$this, "acceptUdpClient"]);
+        $this->eventLoop();
+        fprintf(STDOUT, "task process <pid:%d> exit\r\n", posix_getpid());
+        exit(0);
+    }
+
+    public function task($msg) {
+        $taskNum = $this->_settings['taskNum'] ?? 1;
+        $unix_client_file = $this->_settings['unix_client_socket_file'];
+        $unix_server_file = $this->_settings['unix_server_socket_file'].mt_rand(1, $taskNum);
+        if (file_exists($unix_client_file)) {
+            unlink($unix_client_file);
+        }
+        $unix_socket = socket_create(AF_UNIX, SOCK_DGRAM, 0);
+        socket_bind($unix_socket, $unix_client_file);
+        $len = socket_sendto($unix_socket, $msg, strlen($msg), 0, $unix_server_file);
+        fprintf(STDOUT, "send <msg:%s len:%d> to task process\r\n", $msg, $len);
+        socket_close($unix_socket);
     }
 
     public function checkHeartTime() {
@@ -326,6 +405,17 @@ class Server {
             $this->onClientJoin();
             self::$_connections[(int)($connId)] = $connection;
             $this->eventCallBak("connect", [$connection]);
+        }
+    }
+
+    public function acceptUdpClient() {
+        set_error_handler(function (){});
+        $len = socket_recvfrom($this->unix_socket, $buf, 1024, 0, $unixClientFile);
+        restore_error_handler();
+        echo "task进程收到消息了:$buf\r\n";
+        if ($len > 0) {
+//            $udpConnection = new UdpConnection($this->unix_socket, $unixClientFile);
+            $this->eventCallBak("task", [$buf]);
         }
     }
 }

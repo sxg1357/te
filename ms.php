@@ -19,12 +19,18 @@ class ms {
         $this->_server->on("connect", [$this, "onConnect"]); 
         $this->_server->on("receive", [$this, "onReceive"]);
         $this->_server->on("close", [$this, "onClose"]);
-        $this->_server->settings(['workerNum' => 2]);
+        $this->_server->settings([
+            'workerNum' => 2,
+            'taskNum' => 2,
+            'unix_server_socket_file' => '/home/sxg/te/sock/unix_sock_server.sock',
+            'unix_client_socket_file' => '/home/sxg/te/sock/unix_sock_client.sock'
+        ]);
         $this->_server->on("masterStart", [$this, "masterStart"]);
         $this->_server->on("masterShutdown", [$this, "masterShutdown"]);
         $this->_server->on("workerStart", [$this, "workerStart"]);
         $this->_server->on("workerStop", [$this, "workerStop"]);
         $this->_server->on("workerReload", [$this, "workerReload"]);
+        $this->_server->on("task", [$this, "task"]);
         $this->_server->start();
     }
 
@@ -34,6 +40,7 @@ class ms {
 
     public function onReceive(Socket\Ms\Server $Server, $msg, Socket\Ms\TcpConnections $connection) {
         fprintf(STDOUT, "有客户发送数据:%s\n", $msg);
+        $Server->task($msg);
         $connection->send("i am a server ".time());
     }
 
@@ -60,6 +67,10 @@ class ms {
 
     public function workerReload(Socket\Ms\Server $Server) {
         fprintf(STDOUT, "worker <pid:%d> reload\r\n", posix_getpid());
+    }
+
+    public function task(Socket\Ms\Server $Server, $msg) {
+        fprintf(STDOUT, "task process <pid:%d> recv msg:%s\r\n", posix_getpid(), $msg);
     }
 }
 
