@@ -1,2 +1,4 @@
-/.idea
-vendor
+.idea/
+vendor/
+vendor/composer
+vendor/autoload.php
