@@ -40,7 +40,12 @@ class ms {
 
     public function onReceive(Socket\Ms\Server $Server, $msg, Socket\Ms\TcpConnections $connection) {
         fprintf(STDOUT, "有客户发送数据:%s\n", $msg);
-        $Server->task($msg);
+        echo time().PHP_EOL;
+        $Server->task(function ($result) {
+            sleep($result);
+            echo "异步任务执行了\r\n";
+            echo time().PHP_EOL;
+        });
         $connection->send("i am a server ".time());
     }
 

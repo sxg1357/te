@@ -11,6 +11,7 @@ namespace Socket\Ms;
 use Socket\Ms\Event\Epoll;
 use Socket\Ms\Event\Event;
 use Socket\Ms\Event\Select;
+use Opis\Closure\SerializableClosure;
 
 class Server {
 
@@ -357,17 +358,20 @@ class Server {
         exit(0);
     }
 
-    public function task($msg) {
+    public function task($func) {
         $taskNum = $this->_settings['taskNum'] ?? 1;
         $unix_client_file = $this->_settings['unix_client_socket_file'];
         $unix_server_file = $this->_settings['unix_server_socket_file'].mt_rand(1, $taskNum);
         if (file_exists($unix_client_file)) {
             unlink($unix_client_file);
         }
+        $wrapper = serialize(new SerializableClosure($func));
+        $len = strlen($wrapper);
+        $data = pack('N', $len + 4).$wrapper;
+
         $unix_socket = socket_create(AF_UNIX, SOCK_DGRAM, 0);
         socket_bind($unix_socket, $unix_client_file);
-        $len = socket_sendto($unix_socket, $msg, strlen($msg), 0, $unix_server_file);
-        fprintf(STDOUT, "send <msg:%s len:%d> to task process\r\n", $msg, $len);
+        socket_sendto($unix_socket, $data, $len + 4, 0, $unix_server_file);
         socket_close($unix_socket);
     }
 
@@ -410,12 +414,10 @@ class Server {
 
     public function acceptUdpClient() {
         set_error_handler(function (){});
-        $len = socket_recvfrom($this->unix_socket, $buf, 1024, 0, $unixClientFile);
+        $len = socket_recvfrom($this->unix_socket, $wrapper, 65535, 0, $unixClientFile);
         restore_error_handler();
-        echo "task进程收到消息了:$buf\r\n";
         if ($len > 0) {
-//            $udpConnection = new UdpConnection($this->unix_socket, $unixClientFile);
-            $this->eventCallBak("task", [$buf]);
+            $udpConnection = new UdpConnection($this->unix_socket, $len, $wrapper, $unixClientFile);
         }
     }
 }
