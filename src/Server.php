@@ -170,10 +170,10 @@ class Server {
                 }
                 $masterProcessAlive = $masterPid && posix_kill($masterPid, 0) && $masterPid != posix_getpid();
                 if ($masterProcessAlive) {
-                    exit('server already running');
+                    exit("server already running\r\n");
                 }
                 $this->eventCallBak("masterStart", [$this]);
-                cli_set_process_title("te/master");
+                cli_set_process_title("sxg/master");
                 if ($this->checkSetting('daemon')) {
                     $this->daemon();
                     $this->resetFd();
@@ -183,6 +183,7 @@ class Server {
                 $this->forkWorker();
                 $this->forkTask();
                 self::$_status = self::STATUS_RUNNING;
+                $this->displayStartInfo();
                 $this->masterWorker();
                 break;
             case 'stop':
@@ -206,11 +207,11 @@ class Server {
                         exit(0);
                     }
                 } else {
-                    exit("server not running");
+                    exit("server not running\r\n");
                 }
                 break;
             default:
-                $text = "php ".pathinfo(self::$_startFile)['filename'].".php - [start|stop]";
+                $text = "php ".pathinfo(self::$_startFile)['filename'].".php - [start|stop]\r\n";
                 exit($text);
         }
         restore_error_handler();
@@ -223,7 +224,7 @@ class Server {
             exit(0);
         }
         if (-1 == posix_setsid()) {
-            exit("sid set failed");
+            exit("sid set failed\r\n");
         }
         $pid = pcntl_fork();
         if ($pid > 0) {
@@ -347,7 +348,7 @@ class Server {
         } else {
             static::$_eventLoop = new Select();
         }
-        cli_set_process_title("te/worker");
+        cli_set_process_title("sxg/worker");
 
         pcntl_signal(SIGINT, SIG_IGN, false);
         pcntl_signal(SIGTERM, SIG_IGN, false);
@@ -368,7 +369,7 @@ class Server {
     public function tasker($i) {
         self::$_status = self::STATUS_RUNNING;
         $this->echoLog("task process <pid:%d> start", posix_getpid());
-        cli_set_process_title("te/task");
+        cli_set_process_title("sxg/task");
         $unix_server_socket_file = $this->_settings['unix_server_socket_file'].$i;
         if (file_exists($unix_server_socket_file)) {
             unlink($unix_server_socket_file);
@@ -470,6 +471,15 @@ class Server {
             $format .= PHP_EOL;
             fprintf(STDOUT, $format, ...$data);
         }
+    }
+
+    public function displayStartInfo() {
+        $info = "\r\n\e[31;40m".file_get_contents("logo.txt")."\e[0m";
+        $info .= "\e[33;40mSxg workerNum:".$this->_settings['workerNum']."\e[0m\r\n";
+        $info .= "\e[33;40mSxg taskNum:".$this->_settings['taskNum']."\e[0m\r\n";
+        $info .= "\e[33;40mSxg server listening on:".$this->_address."\e[0m\r\n";
+        $info .= "\e[33;40mSxg run mode:".($this->checkSetting('daemon') ? 'daemon' : 'debug')."\e[0m\r\n";
+        fwrite(STDOUT, $info);
     }
 }
 
