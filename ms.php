@@ -23,7 +23,8 @@ class ms {
             'workerNum' => 2,
             'taskNum' => 2,
             'unix_server_socket_file' => '/home/sxg/te/sock/unix_sock_server.sock',
-            'unix_client_socket_file' => '/home/sxg/te/sock/unix_sock_client.sock'
+            'unix_client_socket_file' => '/home/sxg/te/sock/unix_sock_client.sock',
+            'daemon' => true
         ]);
         $this->_server->on("masterStart", [$this, "masterStart"]);
         $this->_server->on("masterShutdown", [$this, "masterShutdown"]);
@@ -34,48 +35,48 @@ class ms {
         $this->_server->start();
     }
 
-    public function onConnect(Socket\Ms\Server $Server, Socket\Ms\TcpConnections $TcpConnections) {
-        fprintf(STDOUT, "有客户端连接了\n");
+    public function onConnect(Socket\Ms\Server $server, Socket\Ms\TcpConnections $TcpConnections) {
+        $server->echoLog("有客户端连接了");
     }
 
-    public function onReceive(Socket\Ms\Server $Server, $msg, Socket\Ms\TcpConnections $connection) {
-        fprintf(STDOUT, "有客户发送数据:%s\n", $msg);
-        echo time().PHP_EOL;
-        $Server->task(function ($result) {
+    public function onReceive(Socket\Ms\Server $server, $msg, Socket\Ms\TcpConnections $connection) {
+        $server->echoLog("有客户发送数据:%s", $msg);
+        $server->echoLog(time());
+        $server->task(function ($result) use ($server) {
             sleep($result);
-            echo "异步任务执行了\r\n";
-            echo time().PHP_EOL;
+            $server->echoLog( "异步任务执行了");
+            $server->echoLog(time());
         });
         $connection->send("i am a server ".time());
     }
 
-    public function onClose(Socket\Ms\Server $Server, Socket\Ms\TcpConnections $connection) {
-        fprintf(STDOUT, "有客户端连接关闭了\n");
-        $Server->removeClient($connection->_socketFd);
+    public function onClose(Socket\Ms\Server $server, Socket\Ms\TcpConnections $connection) {
+        $server->echoLog("有客户端连接关闭了");
+        $server->removeClient($connection->_socketFd);
     }
 
-    public function masterStart(Socket\Ms\Server $Server) {
-        fprintf(STDOUT, "master server <pid:%d> start working\r\n", posix_getpid());
+    public function masterStart(Socket\Ms\Server $server) {
+        $server->echoLog("master server <pid:%d> start working", posix_getpid());
     }
 
-    public function masterShutdown(Socket\Ms\Server $Server) {
-        fprintf(STDOUT, "master server <pid:%d> shutdown\r\n", posix_getpid());
+    public function masterShutdown(Socket\Ms\Server $server) {
+        $server->echoLog("master server <pid:%d> shutdown", posix_getpid());
     }
 
-    public function workerStart(Socket\Ms\Server $Server) {
-        fprintf(STDOUT, "worker <pid:%d> start working\r\n", posix_getpid());
+    public function workerStart(Socket\Ms\Server $server) {
+        $server->echoLog("worker <pid:%d> start working", posix_getpid());
     }
 
-    public function workerStop(Socket\Ms\Server $Server) {
-        fprintf(STDOUT, "worker <pid:%d> stop\r\n", posix_getpid());
+    public function workerStop(Socket\Ms\Server $server) {
+        $server->echoLog("worker <pid:%d> stop", posix_getpid());
     }
 
-    public function workerReload(Socket\Ms\Server $Server) {
-        fprintf(STDOUT, "worker <pid:%d> reload\r\n", posix_getpid());
+    public function workerReload(Socket\Ms\Server $server) {
+        $server->echoLog("worker <pid:%d> reload", posix_getpid());
     }
 
-    public function task(Socket\Ms\Server $Server, $msg) {
-        fprintf(STDOUT, "task process <pid:%d> recv msg:%s\r\n", posix_getpid(), $msg);
+    public function task(Socket\Ms\Server $server, $msg) {
+        $server->echoLog("task process <pid:%d> recv msg:%s", posix_getpid(), $msg);
     }
 }
 

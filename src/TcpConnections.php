@@ -133,7 +133,7 @@ class TcpConnections {
     public function checkHeartTime() {
         $nowTime = time();
         if ($nowTime - $this->_heartTime >= self::HEART_BEAT) {
-            fprintf(STDOUT, "心跳时间已超出:%d\n", $nowTime - $this->_heartTime);
+            $this->_server->echoLog("心跳时间已超出:%d\n", $nowTime - $this->_heartTime);
             return true;
         }
         return false;

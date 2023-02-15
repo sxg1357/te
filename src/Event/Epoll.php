@@ -26,7 +26,8 @@ class Epoll implements Event
         $flag = $arg[1];
         $timerId = $arg[2];
         $userArg = $arg[3];
-        echo "执行timerCallBack\r\n";
+
+//        echo "执行timerCallBack\r\n";
         if ($flag == Event::EVENT_TIMER_ONCE) {
             $event = $this->_timers[$timerId][$flag];
             $event->del();
@@ -43,7 +44,7 @@ class Epoll implements Event
                 //stream resource, socket resource(有问题), or numeric file descriptor
                 $event = new \Event($this->_eventBase, $fd, \Event::READ|\Event::PERSIST, $func, $args);
                 if (!$event || !$event->add()) {
-                    fprintf(STDOUT, "read事件添加失败\n");
+//                    fprintf(STDOUT, "read事件添加失败\n");
                     print_r(error_get_last());
                     return false;
                 }
@@ -53,7 +54,7 @@ class Epoll implements Event
             case self::WRITE:
                 $event = new \Event($this->_eventBase, $fd, \Event::WRITE|\Event::PERSIST, $func, $args);
                 if (!$event || !$event->add()) {
-                    fprintf(STDOUT, "write事件添加失败\n");
+//                    fprintf(STDOUT, "write事件添加失败\n");
                     print_r(error_get_last());
                     return false;
                 }
@@ -66,7 +67,7 @@ class Epoll implements Event
                 $params = [$func, $flag, $timer_id, $args];
                 $event = new \Event($this->_eventBase, -1, \Event::TIMEOUT|\Event::PERSIST, [$this, "timerCallBack"], $params);
                 if (!$event || !$event->add($fd)) {
-                    echo "定时事件添加失败\r\n";
+//                    echo "定时事件添加失败\r\n";
                     return false;
                 }
 //                echo "定时事件添加成功\r\n";

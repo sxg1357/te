@@ -84,15 +84,15 @@ class Select implements Event
                 if ($this->_timeout >= $selectTime) {
                     $this->_timeout = $selectTime;
                 }
-                echo "定时事件添加成功\r\n";
+//                echo "定时事件添加成功\r\n";
                 ++self::$_timerId;
                 return $timer_id;
             case self::EVENT_SIGNAL:
-                echo "添加中断信号事件成功".$fd."\r\n";
+//                echo "添加中断信号事件成功".$fd."\r\n";
                 $params = [$func, $args];
                 $this->_signalEvents[$fd] = $params;
                 if (pcntl_signal($fd, [$this, 'signalHandler'], false)) {
-                    fprintf(STDOUT, "pid %d add signal %d event successfully\r\n", posix_getpid(), $fd);
+//                    fprintf(STDOUT, "pid %d add signal %d event successfully\r\n", posix_getpid(), $fd);
                 }
                 return true;
         }
@@ -181,21 +181,21 @@ class Select implements Event
     public function clearTimer()
     {
         // TODO: Implement clearTimer() method.
-        echo "clear timer events successfully\r\n";
+//        echo "clear timer events successfully\r\n";
         $this->_timers = [];
     }
 
     public function clearSignalEvents()
     {
         // TODO: Implement clearSignalEvents() method.
-        echo "clear signal events successfully\r\n";
+//        echo "clear signal events successfully\r\n";
         $this->_signalEvents = [];
     }
 
     public function exitLoop()
     {
         // TODO: Implement exitLoop() method.
-        echo "select exit loop successfully\r\n";
+//        echo "select exit loop successfully\r\n";
         $this->_run = false;
         $this->_allEvents = [];
         $this->_writeFds = [];

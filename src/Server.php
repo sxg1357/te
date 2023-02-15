@@ -87,7 +87,7 @@ class Server {
         $diffTime = $nowTime - $this->_starttime;
         $this->_starttime = $nowTime;
         if ($diffTime >= 1) {
-            fprintf(STDOUT,"time:<%s>--socket<%d>--<clientNum:%d>--<recvNum:%d>--<msgNum:%d>\r\n",
+            $this->echoLog("time:<%s>--socket<%d>--<clientNum:%d>--<recvNum:%d>--<msgNum:%d>",
                 $diffTime, (int)$this->_socket, static::$_clientNum, static::$_recvNum, static::$_msgNum);
             static::$_recvNum = 0;
             static::$_msgNum = 0;
@@ -102,14 +102,14 @@ class Server {
         $this->_socket = stream_socket_server($this->_address, $error_code, $error_message, $flags, $context);
         stream_set_blocking($this->_socket, 0);
         if (!is_resource($this->_socket)) {
-            fprintf(STDOUT, "socket create fail:%s\n", $error_message);
+            $this->echoLog("socket create fail:%s", $error_message);
             exit(0);
         }
-        fprintf(STDOUT,"listen on:%s\n", $this->_address);
+        $this->echoLog("listen on:%s", $this->_address);
     }
 
     public function signalHandler($sigNum) {
-        fprintf(STDOUT, "<pid:%d>recv signo:%d\r\n", posix_getpid(), $sigNum);
+        $this->echoLog("<pid:%d>recv signo:%d", posix_getpid(), $sigNum);
         $masterPid = file_get_contents(self::$_pidFile);
         switch ($sigNum) {
             case SIGINT:
@@ -135,7 +135,7 @@ class Server {
                     static::$_eventLoop->clearTimer();
                     static::$_eventLoop->clearSignalEvents();
                     if (static::$_eventLoop->exitLoop()) {
-                        fprintf(STDOUT, "<pid:%d> exit ok\r\n", posix_getpid());
+                        $this->echoLog("<pid:%d> exit ok", posix_getpid());
                     }
                 }
             break;
@@ -152,7 +152,7 @@ class Server {
         static::$_eventLoop->clearTimer();
         static::$_eventLoop->clearSignalEvents();
         if (static::$_eventLoop->exitLoop()) {
-            fprintf(STDOUT, "<pid:%d> task process exit ok\r\n", posix_getpid());
+            $this->echoLog("<pid:%d> task process exit ok", posix_getpid());
         }
     }
 
@@ -174,6 +174,10 @@ class Server {
                 }
                 $this->eventCallBak("masterStart", [$this]);
                 cli_set_process_title("te/master");
+                if ($this->checkSetting('daemon')) {
+                    $this->daemon();
+                    $this->resetFd();
+                }
                 $this->saveMasterPid();
                 $this->installSignalHandler();
                 $this->forkWorker();
@@ -185,35 +189,67 @@ class Server {
                 $masterPid = file_get_contents(self::$_pidFile);
                 if ($masterPid && posix_kill($masterPid, 0)) {
                     posix_kill($masterPid, SIGINT);
-                    echo "发送SIGINT中断信号了\r\n";
+                    $this->echoLog("发送SIGINT中断信号了");
                     $timeout = 5;
                     $stopTime = time();
                     while (1) {
                         $masterPidAlive = $masterPid && posix_kill($masterPid, 0) && $masterPid != posix_getpid();
                         if ($masterPidAlive) {
                             if (time() - $stopTime > $timeout) {
-                                echo "server stop failure\r\n";
+                                $this->echoLog("server stop failure");
                                 break;
                             }
                             sleep(1);
                             continue;
                         }
-                        echo "server stop successfully\r\n";
+                        $this->echoLog("server stop successfully");
                         exit(0);
                     }
                 } else {
-                    exit("server not running\r\n");
+                    exit("server not running");
                 }
                 break;
             default:
-                $text = "php ".pathinfo(self::$_startFile)['filename'].".php - [start|stop]\r\n";
+                $text = "php ".pathinfo(self::$_startFile)['filename'].".php - [start|stop]";
                 exit($text);
         }
         restore_error_handler();
     }
 
+    public function daemon() {
+        umask(000);
+        $pid = pcntl_fork();
+        if ($pid > 0) {
+            exit(0);
+        }
+        if (-1 == posix_setsid()) {
+            exit("sid set failed");
+        }
+        $pid = pcntl_fork();
+        if ($pid > 0) {
+            exit(0);
+        }
+    }
+
+    public function resetFd() {
+//        fclose(STDIN);
+//        fclose(STDOUT);
+//        fclose(STDERR);
+//        fopen("/dev/null", 'a');
+//        fopen("/dev/null", 'a');
+//        fopen("/dev/null", 'a');
+    }
+
+    public function checkSetting($option): bool
+    {
+        if (isset($this->_settings[$option]) && $this->_settings[$option]) {
+            return true;
+        }
+        return false;
+    }
+
     public function reloadWorker() {
-        echo "重启进程\r\n";
+        $this->echoLog("重启进程");
         $pid = pcntl_fork();
         if (0 == $pid) {
             $this->worker();
@@ -262,6 +298,9 @@ class Server {
             touch(self::$_logFile);
             chown(self::$_logFile, posix_getuid());
         }
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+            $this->echoLog("<file:%s>---<line:%s>---<info:%s>", $errfile, $errline, $errstr);
+        });
     }
 
     public function forkWorker() {
@@ -328,7 +367,7 @@ class Server {
 
     public function tasker($i) {
         self::$_status = self::STATUS_RUNNING;
-        fprintf(STDOUT, "task process <pid:%d> start\r\n", posix_getpid());
+        $this->echoLog("task process <pid:%d> start", posix_getpid());
         cli_set_process_title("te/task");
         $unix_server_socket_file = $this->_settings['unix_server_socket_file'].$i;
         if (file_exists($unix_server_socket_file)) {
@@ -354,7 +393,7 @@ class Server {
         static::$_eventLoop->add(SIGTERM, Event::EVENT_SIGNAL, [$this, "taskSignalHandler"]);
         self::$_eventLoop->add($stream, Event::READ, [$this, "acceptUdpClient"]);
         $this->eventLoop();
-        fprintf(STDOUT, "task process <pid:%d> exit\r\n", posix_getpid());
+        $this->echoLog("task process <pid:%d> exit", posix_getpid());
         exit(0);
     }
 
@@ -376,7 +415,7 @@ class Server {
     }
 
     public function checkHeartTime() {
-        echo "执行心跳检测了\r\n";
+        $this->echoLog("执行心跳检测了");
         foreach (self::$_connections as $idx => $fd) {
             /**@var TcpConnections $fd */
             if ($fd->checkHeartTime()) {
@@ -417,7 +456,19 @@ class Server {
         $len = socket_recvfrom($this->unix_socket, $wrapper, 65535, 0, $unixClientFile);
         restore_error_handler();
         if ($len > 0) {
+            $this->echoLog("task process recv %d bytes", $len);
             $udpConnection = new UdpConnection($this->unix_socket, $len, $wrapper, $unixClientFile);
+        }
+    }
+
+    public function echoLog($format, ...$data) {
+        if ($this->checkSetting('daemon')) {
+            $info = sprintf($format, ...$data);
+            $msg = "[pid:".posix_getpid()."]-[".date("Y-m-d H:i:s", time())."]"."-[info:".$info."]\r\n";
+            file_put_contents(self::$_logFile, $msg, FILE_APPEND);
+        } else {
+            $format .= PHP_EOL;
+            fprintf(STDOUT, $format, ...$data);
         }
     }
 }
