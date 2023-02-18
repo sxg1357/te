@@ -24,7 +24,7 @@ class ms {
             'taskNum' => 2,
             'unix_server_socket_file' => '/home/sxg/te/sock/unix_sock_server.sock',
             'unix_client_socket_file' => '/home/sxg/te/sock/unix_sock_client.sock',
-            'daemon' => true
+            'daemon' => false
         ]);
         $this->_server->on("masterStart", [$this, "masterStart"]);
         $this->_server->on("masterShutdown", [$this, "masterShutdown"]);

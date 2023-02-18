@@ -100,6 +100,8 @@ class Server {
         $option['socket']['so_reuseport'] = 1;
         $context = stream_context_create($option);    //setsocketopt
         $this->_socket = stream_socket_server($this->_address, $error_code, $error_message, $flags, $context);
+        $socket = socket_import_stream($this->_socket);
+        socket_set_option($socket, SOL_TCP, TCP_NODELAY, 1);
         stream_set_blocking($this->_socket, 0);
         if (!is_resource($this->_socket)) {
             $this->echoLog("socket create fail:%s", $error_message);
