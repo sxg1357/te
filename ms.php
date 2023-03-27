@@ -26,11 +26,11 @@ class ms {
             'unix_client_socket_file' => '/home/sxg/te/sock/unix_sock_client.sock',
             'daemon' => false
         ]);
-        $this->_server->on("masterStart", [$this, "masterStart"]);
-        $this->_server->on("masterShutdown", [$this, "masterShutdown"]);
-        $this->_server->on("workerStart", [$this, "workerStart"]);
-        $this->_server->on("workerStop", [$this, "workerStop"]);
-        $this->_server->on("workerReload", [$this, "workerReload"]);
+//        $this->_server->on("masterStart", [$this, "masterStart"]);
+//        $this->_server->on("masterShutdown", [$this, "masterShutdown"]);
+//        $this->_server->on("workerStart", [$this, "workerStart"]);
+//        $this->_server->on("workerStop", [$this, "workerStop"]);
+//        $this->_server->on("workerReload", [$this, "workerReload"]);
         $this->_server->on("task", [$this, "task"]);
         $this->_server->start();
     }
@@ -42,11 +42,13 @@ class ms {
     public function onReceive(Socket\Ms\Server $server, $msg, Socket\Ms\TcpConnections $connection) {
         $server->echoLog("有客户发送数据:%s", $msg);
         $server->echoLog(time());
-        $server->task(function ($result) use ($server) {
-            sleep($result);
-            $server->echoLog( "异步任务执行了");
-            $server->echoLog(time());
-        });
+        if (DIRECTORY_SEPARATOR == '/') {
+            $server->task(function ($result) use ($server) {
+                sleep($result);
+                $server->echoLog( "异步任务执行了");
+                $server->echoLog(time());
+            });
+        }
         $connection->send("i am a server ".time());
     }
 

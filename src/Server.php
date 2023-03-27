@@ -165,6 +165,7 @@ class Server {
         set_error_handler(function (){});
         switch ($argv[1]) {
             case 'start':
+                cli_set_process_title("sxg/master");
                 if (is_file(self::$_pidFile)) {
                     $masterPid = file_get_contents(self::$_pidFile);
                 } else {
@@ -175,18 +176,22 @@ class Server {
                     exit("server already running\r\n");
                 }
                 $this->eventCallBak("masterStart", [$this]);
-                cli_set_process_title("sxg/master");
-                if ($this->checkSetting('daemon')) {
-                    $this->daemon();
-                    $this->resetFd();
+                if (DIRECTORY_SEPARATOR == '/') {
+                    if ($this->checkSetting('daemon')) {
+                        $this->daemon();
+                        $this->resetFd();
+                    }
+                    $this->saveMasterPid();
+                    $this->installSignalHandler();
+                    $this->forkWorker();
+                    $this->forkTask();
+                    self::$_status = self::STATUS_RUNNING;
+                    $this->displayStartInfo();
+                    $this->masterWorker();
+                } else {
+//                    $this->displayStartInfo();
+                    $this->worker();
                 }
-                $this->saveMasterPid();
-                $this->installSignalHandler();
-                $this->forkWorker();
-                $this->forkTask();
-                self::$_status = self::STATUS_RUNNING;
-                $this->displayStartInfo();
-                $this->masterWorker();
                 break;
             case 'stop':
                 $masterPid = file_get_contents(self::$_pidFile);
@@ -299,6 +304,8 @@ class Server {
         self::$_logFile = pathinfo($startFile)['filename'].'.log';
         if (!file_exists(self::$_logFile)) {
             touch(self::$_logFile);
+        }
+        if (DIRECTORY_SEPARATOR == '/') {
             chown(self::$_logFile, posix_getuid());
         }
         set_error_handler(function ($errno, $errstr, $errfile, $errline) {
@@ -347,18 +354,16 @@ class Server {
         //注意这里,从初始化方法调位至这里,创建不同的epoll对象,否则会出错的
         if (DIRECTORY_SEPARATOR == '/') {
             static::$_eventLoop = new Epoll();
+            pcntl_signal(SIGINT, SIG_IGN, false);
+            pcntl_signal(SIGTERM, SIG_IGN, false);
+            pcntl_signal(SIGQUIT, SIG_IGN, false);
+            static::$_eventLoop->add(SIGINT, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
+            static::$_eventLoop->add(SIGQUIT, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
+            static::$_eventLoop->add(SIGTERM, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
         } else {
             static::$_eventLoop = new Select();
         }
         cli_set_process_title("sxg/worker");
-
-        pcntl_signal(SIGINT, SIG_IGN, false);
-        pcntl_signal(SIGTERM, SIG_IGN, false);
-        pcntl_signal(SIGQUIT, SIG_IGN, false);
-
-        static::$_eventLoop->add(SIGINT, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
-        static::$_eventLoop->add(SIGQUIT, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
-        static::$_eventLoop->add(SIGTERM, Event::EVENT_SIGNAL, [$this, "signalHandler"]);
 
         self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
 //        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);

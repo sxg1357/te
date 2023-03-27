@@ -138,7 +138,9 @@ class Select implements Event
             $reads = $this->_readFds;
             $writes = $this->_writeFds;
             $exps = $this->_expFds;
-            pcntl_signal_dispatch();
+            if (DIRECTORY_SEPARATOR == '/') {
+                pcntl_signal_dispatch();
+            }
             set_error_handler(function (){});
             //此函数的第四个参数设置为null则为阻塞状态 当有客户端连接或者收发消息时 会解除阻塞 内核会修改 &$read &$write
             $ret = stream_select($reads, $writes, $exps, 0, $this->_timeout);

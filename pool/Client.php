@@ -15,7 +15,6 @@ class Client {
 
     public function __construct() {
         $this->_socketFd = socket_create(AF_UNIX, SOCK_STREAM, 0);
-        $this->_socketFd = socket_create(AF_UNIX, SOCK_STREAM, 0);
         if (!is_resource($this->_socketFd)) {
             fprintf(STDOUT, "socket create failed,strerrno=%s\r\n", socket_strerror(socket_last_error()));
         }
