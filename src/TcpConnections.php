@@ -83,7 +83,6 @@ class TcpConnections {
     public function handleMessage() {
         /**@var server $server*/
         $server = $this->_server;
-
         if (is_object($server->_protocol) && $server->_protocol != null) {
             while ($server->_protocol->Len($this->_recvBuffer)) {
                 $msgLen = $server->_protocol->msgLen($this->_recvBuffer);
@@ -93,16 +92,31 @@ class TcpConnections {
                 $this->_recvLen -= $msgLen;
                 $server->onMsg();
                 $message = $server->_protocol->decode($oneMsg);
-                $server->eventCallBak("receive", [$message, $this]);
+                $this->eventCallBack($message);
+//                $server->eventCallBak("receive", [$message, $this]);
                 $this->resetHeartTime();
             }
         } else {
-            $server->eventCallBak("receive", [$this->_recvBuffer, $this]);
+//            $server->eventCallBak("receive", [$this->_recvBuffer, $this]);
+            $this->eventCallBack($this->_recvBuffer);
             $this->_recvBufferFull = 0;
             $this->_recvLen = 0;
             $this->_recvBuffer = '';
             $server->onMsg();
             $this->resetHeartTime();
+        }
+    }
+
+    public function eventCallBack($message) {
+        switch ($this->_server->_usingProtocol) {
+            case 'stream':
+            case 'text':
+            case 'tcp':
+                $this->_server->eventCallBak("receive", [$message, $this]);
+                break;
+            case 'http':
+//            $this->_server->eventCallBak("request", [$message, $this]);
+                break;
         }
     }
 
@@ -121,7 +135,7 @@ class TcpConnections {
         $this->_socketFd = null;
         $this->_sendLen = 0;
         $this->_sendBuffer = '';
-        $this->_sendBuffer = 0;
+        $this->_sendBufferFull = 0;
         $this->_sendBufferSize = 0;
 
         $this->_recvBufferFull = 0;

@@ -22,6 +22,7 @@ class Server {
     public $_events = [];
 
     public $_protocol = null;
+    public $_usingProtocol;
 
     static public $_clientNum = 0;
     static public $_recvNum = 0;
@@ -45,8 +46,8 @@ class Server {
     public $_protocols = [
         "stream" => "Socket\Ms\Protocols\Stream",
         "text" => "Socket\Ms\Protocols\Text",
+        "http" => "Socket\Ms\Protocols\Http",
         "websocket" => "",
-        "http" => "",
         "mqtt" => ""
     ];
 
@@ -59,6 +60,7 @@ class Server {
 
     public function __construct($address) {
         list($protocol, $ip, $port) = explode(":", $address);
+        $this->_usingProtocol = $protocol;
         if (isset($this->_protocols[$protocol])) {
             $this->_protocol = new $this->_protocols[$protocol]();
         }
@@ -107,7 +109,7 @@ class Server {
             $this->echoLog("socket create fail:%s", $error_message);
             exit(0);
         }
-        $this->echoLog("listen on:%s", $this->_address);
+//        $this->echoLog("listen on:%s", $this->_address);
     }
 
     public function signalHandler($sigNum) {
@@ -329,7 +331,7 @@ class Server {
     }
 
     public function forkTask() {
-        $taskNum = 1;
+        $taskNum = 0;
         if (isset($this->_settings['taskNum'])) {
             $taskNum = $this->_settings['taskNum'];
         }
