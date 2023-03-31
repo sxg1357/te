@@ -1,0 +1,18 @@
+POST /index.html?name=sxg&age=25 HTTP/1.1
+User-Agent: PostmanRuntime/7.31.3
+Accept: */*
+Postman-Token: 94fb7a68-87ec-46a7-af05-829aeafd97b5
+Host: 127.0.0.1:9501
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Content-Type: multipart/form-data; boundary=--------------------------931233375825575835057869
+Content-Length: 266
+----------------------------931233375825575835057869
+Content-Disposition: form-data; name="name"
+
+sxg
+----------------------------931233375825575835057869
+Content-Disposition: form-data; name="age"
+
+25
+----------------------------931233375825575835057869--

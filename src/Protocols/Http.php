@@ -32,15 +32,19 @@ class Http implements Protocols {
     }
 
     /**
-    POST /index.html?name=sxg&age=25 HTTP/1.1
-    User-Agent: PostmanRuntime/7.31.3
-    Accept: 1
-    Postman-Token: 29cbb0fd-c895-4ceb-978c-9dc5a11db982
-    Host: 127.0.0.1:9501
-    Accept-Encoding: gzip, deflate, br
-    Connection: keep-alive
-    Content-Type: application/x-www-form-urlencoded
-    Content-Length: 15
+     * http报文结构
+     * POST /index.html?name=sxg&age=25 HTTP/1.1\r\n
+     * User-Agent: PostmanRuntime/7.31.3\r\n
+     * Accept: 1\r\n
+     * Postman-Token: 29cbb0fd-c895-4ceb-978c-9dc5a11db982\r\n
+     * Host: 127.0.0.1:9501\r\n
+     * Accept-Encoding: gzip, deflate, br\r\n
+     * Connection: keep-alive\r\n
+     * Content-Type: application/x-www-form-urlencoded\r\n
+     * Content-Length: 15\r\n
+     * \r\n
+     * name=sxg&age=25
+     * @param $header
      */
     public function parseHeader($header) {
         $_REQUEST = $_GET = [];
@@ -59,9 +63,47 @@ class Http implements Protocols {
             $k = strtolower($k);
             $_REQUEST[$k] = $v;
         }
-        print_r($_GET);
-        echo "------------------------";
-        print_r($_REQUEST);
+    }
+
+    public function parserBody($body) {
+        $content_type = $_REQUEST['content_type'];
+        $boundary = '';
+        if (preg_match("/boundary=?(\S+)/i", $content_type, $matches)) {
+            $boundary = '--'.$matches[1];
+            $content_type = 'multipart/form-data';
+        }
+        switch ($content_type) {
+            case 'multipart/form-data':
+                $this->parseFormData($body, $boundary);
+                break;
+            case 'application/x-www-form-urlencoded':
+                parse_str($body, $_POST);
+                break;
+        }
+    }
+
+    public function parseFormData($data, $boundary) {
+        $data = substr($data, 0 , -4);
+        $formData = explode($boundary, $data);
+        $_FILES = [];
+        $key = 0;
+        foreach ($formData as $field) {
+            if ($field) {
+                $kv = explode("\r\n\r\n", $field, 2);
+                $val = trim($kv[1], "\r\n");
+                if (preg_match("/name=(.*); filename=(.*)/", $kv[0], $matches)) {
+                    $_FILES[$key]['name'] = $matches[1];
+                    $_FILES[$key]['file_name'] = $matches[2];
+                    $_FILES[$key]['file_size'] = strlen($val);
+                    $file_type = explode("\r\n", $kv[0], 3);
+                    $file_type = explode(": ", $file_type[2]);
+                    $_FILES[$key]['file_type'] = $file_type[1];
+                    ++$key;
+                } else if (preg_match("/name=(.*)/", $kv[0], $matches)) {
+                    $_POST[$matches[1]] = $val;
+                }
+            }
+        }
     }
 
     public function encode($data = '')
@@ -75,6 +117,9 @@ class Http implements Protocols {
         $header = substr($data, 0, $this->_headerLen - 4);
         $this->parseHeader($header);
         $body = substr($data, $this->_headerLen);
+        if ($body) {
+            $this->parserBody($body);
+        }
     }
 
     public function msgLen($data = '')

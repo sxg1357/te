@@ -1,0 +1,23 @@
+POST /index.html?name=sxg&age=25 HTTP/1.1\r\n
+User-Agent: PostmanRuntime/7.31.3\r\n
+Accept: */*\r\n
+Postman-Token: 8968629f-169a-4fd5-a41a-e3e82c5e9d3f\r\n
+Host: 127.0.0.1:9501\r\n
+Accept-Encoding: gzip, deflate, br\r\n
+Connection: keep-alive\r\n
+Content-Type: multipart/form-data; boundary=--------------------------343487536575423863806226\r\n
+Content-Length: 428\r\n
+----------------------------343487536575423863806226\r\n
+Content-Disposition: form-data; name="name"\r\n
+\r\n
+sxg\r\n
+----------------------------343487536575423863806226\r\n
+Content-Disposition: form-data; name="age"\r\n
+\r\n
+25\r\n
+----------------------------343487536575423863806226\r\n
+Content-Disposition: form-data; name="file"; filename="key.txt"\r\n
+Content-Type: text/plain\r\n
+\r\n
+country:china\r\n
+----------------------------343487536575423863806226--\r\n
