@@ -13,8 +13,7 @@ class Http implements Protocols {
     public $_headerLen = 0;
     public $_bodyLen = 0;
 
-    public function Len($data)
-    {
+    public function Len($data) {
         // TODO: Implement Len() method.
         $len = strpos($data, "\r\n\r\n");
         if ($len !== false) {
@@ -79,6 +78,9 @@ class Http implements Protocols {
             case 'application/x-www-form-urlencoded':
                 parse_str($body, $_POST);
                 break;
+            case 'application/json':
+                $_POST = json_decode($body, true);
+                break;
         }
     }
 
@@ -91,15 +93,16 @@ class Http implements Protocols {
             if ($field) {
                 $kv = explode("\r\n\r\n", $field, 2);
                 $val = trim($kv[1], "\r\n");
-                if (preg_match("/name=(.*); filename=(.*)/", $kv[0], $matches)) {
+                if (preg_match('/name="(.*)"; filename="(.*)"/', $kv[0], $matches)) {
                     $_FILES[$key]['name'] = $matches[1];
                     $_FILES[$key]['file_name'] = $matches[2];
                     $_FILES[$key]['file_size'] = strlen($val);
                     $file_type = explode("\r\n", $kv[0], 3);
                     $file_type = explode(": ", $file_type[2]);
                     $_FILES[$key]['file_type'] = $file_type[1];
+                    file_put_contents('www/'.$matches[2], $val);
                     ++$key;
-                } else if (preg_match("/name=(.*)/", $kv[0], $matches)) {
+                } else if (preg_match('/name="(.*)"/', $kv[0], $matches)) {
                     $_POST[$matches[1]] = $val;
                 }
             }
@@ -109,6 +112,7 @@ class Http implements Protocols {
     public function encode($data = '')
     {
         // TODO: Implement encode() method.
+        return [strlen($data), $data];
     }
 
     public function decode($data = '')

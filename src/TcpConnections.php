@@ -115,9 +115,22 @@ class TcpConnections {
                 $this->_server->eventCallBak("receive", [$message, $this]);
                 break;
             case 'http':
-//            $this->_server->eventCallBak("request", [$message, $this]);
+                $request = $this->createRequest();
+                $response = new Response($this);
+                if ($request->_request['method'] == 'OPTIONS') {
+                    $response->sendAllowOrigin();
+                }
                 break;
         }
+    }
+
+    public function createRequest() : Request {
+        $request = new Request();
+        $request->_get = $_GET;
+        $request->_post = $_POST;
+        $request->_files = $_FILES;
+        $request->_request = $_REQUEST;
+        return $request;
     }
 
     public function close() {
@@ -204,8 +217,7 @@ class TcpConnections {
 
     }
 
-    public function writeSocket()
-    {
+    public function writeSocket() {
         if ($this->needWrite()) {
             set_error_handler(function () {});
             $writeLen = fwrite($this->_socketFd, $this->_sendBuffer, $this->_sendLen);
