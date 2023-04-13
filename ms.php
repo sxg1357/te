@@ -9,6 +9,7 @@
 require_once "vendor/autoload.php";
 
 ini_set("memory_limit", "2048M");
+use Socket\Ms\Response;
 
 class ms {
 
@@ -39,8 +40,8 @@ class ms {
         $server->echoLog("有客户端连接了");
     }
 
-    public function onRequest() {
-
+    public function onRequest(\Socket\Ms\Server $server, \Socket\Ms\Request $request, Response $response) {
+        $response->write("hello world\r\n");
     }
 
 //    public function onReceive(Socket\Ms\Server $server, $msg, Socket\Ms\TcpConnections $connection) {

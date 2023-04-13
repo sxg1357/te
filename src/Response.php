@@ -12,8 +12,54 @@ class Response {
 
     public $_connection;
 
+    private $_statusReason = [
+        '200' => 'OK',
+        '400' => 'Bad Request',
+        '401' => 'Unauthorized',
+        '403' => 'Forbidden',
+        '404' => 'Not Found',
+        '405' => 'Method Not Allowed',
+        '406' => 'Not Acceptable',
+        '500' => 'Internal Server Error',
+        '501' => 'Not Implemented',
+        '502' => 'Bad Gateway',
+    ];
+
+    public $_status_code = 200;
+    public $_status_info = "OK";
+
+    public $_header = [];
+
     public function __construct(TcpConnections $connection) {
         $this->_connection = $connection;
+    }
+
+    public function setHeader($key, $value) {
+        $this->_header[$key] = $value;
+    }
+
+
+    public function write($data) {
+        $len = strlen($data);
+        $text = sprintf("HTTP/1.1 %s %s\r\n", $this->_status_code, $this->_status_info);
+        $text .= sprintf("Date: %s\r\n", date("Y-m-d H:i:s"));
+        $text .= sprintf("OS: %s\r\n", PHP_OS);
+        $text .= sprintf("Content-Language: %s\r\n", "zh-CN,zh;q=0.9");
+        $text .= sprintf("Connection: %s\r\n", $_REQUEST['connection']);
+        $text .= sprintf("Access-Control-Allow-Origin: *\r\n");
+        foreach ($this->_header as $key => $value) {
+            $text .= sprintf("%s: %s", $key, $value);
+        }
+        $text .= sprintf("Content-Length: %d\r\n", $len);
+        if (!isset($this->_header['Content-Type'])) {
+            $text .= sprintf("Content-Type: %s\r\n", "text/html;charset=utf-8");
+        }
+        $text .= "\r\n";
+        $text .= $data;
+        $this->_connection->send($text);
+        if ($_REQUEST['connection'] != 'keep-alive') {
+            $this->_connection->close();
+        }
     }
 
 

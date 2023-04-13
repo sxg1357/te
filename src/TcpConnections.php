@@ -119,6 +119,8 @@ class TcpConnections {
                 $response = new Response($this);
                 if ($request->_request['method'] == 'OPTIONS') {
                     $response->sendAllowOrigin();
+                } else {
+                    $this->_server->eventCallBak("request", [$request, $response]);
                 }
                 break;
         }
