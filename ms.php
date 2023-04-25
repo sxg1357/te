@@ -41,7 +41,8 @@ class ms {
     }
 
     public function onRequest(\Socket\Ms\Server $server, \Socket\Ms\Request $request, Response $response) {
-        $response->write("hello world\r\n");
+        $response->setHeader("Content-Type", "application/json");
+        $response->write(json_encode(['name' => 'sxg', 'age' => '25']));
     }
 
 //    public function onReceive(Socket\Ms\Server $server, $msg, Socket\Ms\TcpConnections $connection) {

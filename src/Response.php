@@ -26,7 +26,6 @@ class Response {
     ];
 
     public $_status_code = 200;
-    public $_status_info = "OK";
 
     public $_header = [];
 
@@ -41,15 +40,17 @@ class Response {
 
     public function write($data) {
         $len = strlen($data);
-        $text = sprintf("HTTP/1.1 %s %s\r\n", $this->_status_code, $this->_status_info);
+        $text = sprintf("HTTP/1.1 %s %s\r\n", $this->_status_code, $this->_statusReason[$this->_status_code]);
         $text .= sprintf("Date: %s\r\n", date("Y-m-d H:i:s"));
+        $text .= sprintf("Server: %s\r\n", "sxg");
         $text .= sprintf("OS: %s\r\n", PHP_OS);
         $text .= sprintf("Content-Language: %s\r\n", "zh-CN,zh;q=0.9");
         $text .= sprintf("Connection: %s\r\n", $_REQUEST['connection']);
         $text .= sprintf("Access-Control-Allow-Origin: *\r\n");
         foreach ($this->_header as $key => $value) {
-            $text .= sprintf("%s: %s", $key, $value);
+            $text .= sprintf("%s: %s\r\n", $key, $value);
         }
+
         $text .= sprintf("Content-Length: %d\r\n", $len);
         if (!isset($this->_header['Content-Type'])) {
             $text .= sprintf("Content-Type: %s\r\n", "text/html;charset=utf-8");
