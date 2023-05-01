@@ -4,7 +4,8 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Socket\\Ms\\": "src/"
+            "Socket\\Ms\\": "src/",
+            "App\\": "app/"
         }
     },
     "authors": [

@@ -32,7 +32,7 @@ class Http implements Protocols {
 
     /**
      * http报文结构
-     * POST /index.html?name=sxg&age=25 HTTP/1.1\r\n
+     * POST /nginx.html?name=sxg&age=25 HTTP/1.1\r\n
      * User-Agent: PostmanRuntime/7.31.3\r\n
      * Accept: 1\r\n
      * Postman-Token: 29cbb0fd-c895-4ceb-978c-9dc5a11db982\r\n

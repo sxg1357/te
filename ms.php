@@ -29,7 +29,7 @@ class ms {
         ]);
 //        $this->_server->on("masterStart", [$this, "masterStart"]);
 //        $this->_server->on("masterShutdown", [$this, "masterShutdown"]);
-//        $this->_server->on("workerStart", [$this, "workerStart"]);
+        $this->_server->on("workerStart", [$this, "workerStart"]);
 //        $this->_server->on("workerStop", [$this, "workerStop"]);
 //        $this->_server->on("workerReload", [$this, "workerReload"]);
 //        $this->_server->on("task", [$this, "task"]);
@@ -46,8 +46,11 @@ class ms {
             $response->sendFile('www/'.$_REQUEST['uri']);
             return true;
         }
-        $response->setHeader("Content-Type", "application/json");
-        $response->write(json_encode(['name' => 'sxg', 'age' => '25']));
+//        $response->setHeader("Content-Type", "application/json");
+//        $response->write(json_encode(['name' => 'sxg', 'age' => '25']));
+        global $routes;
+        global $dispatch;
+        $dispatch->callAction($routes, $request, $response);
         return true;
     }
 
@@ -77,9 +80,13 @@ class ms {
 //        $server->echoLog("master server <pid:%d> shutdown", posix_getpid());
 //    }
 //
-//    public function workerStart(Socket\Ms\Server $server) {
+    public function workerStart(Socket\Ms\Server $server) {
 //        $server->echoLog("worker <pid:%d> start working", posix_getpid());
-//    }
+        global $routes;
+        global $dispatch;
+        $routes = require_once "app/routes/api.php";
+        $dispatch = new \App\Controller\DispatchController();
+    }
 //
 //    public function workerStop(Socket\Ms\Server $server) {
 //        $server->echoLog("worker <pid:%d> stop", posix_getpid());
