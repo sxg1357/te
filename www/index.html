@@ -6,7 +6,8 @@
 </head>
 <body>
 
-<form action="http://127.0.0.1:9501/api/login?name=sxg&age=25" method="post" >
+<!--<form action="http://127.0.0.1:9501/api/login?name=sxg&age=25" method="post" >-->
+<form action="http://175.178.132.26:9501/api/login?name=sxg&age=25" method="post" >
     First name: <input type="text" name="first" /><br />
     Last name: <input type="text" name="last" /><br />
     <input type="submit" />
@@ -23,7 +24,8 @@
     $(function () {
         $("#send").click(function () {
             $.ajax({
-                url:"http://127.0.0.1:9501/api/login?name=sxg&age=25",
+                // url:"http://127.0.0.1:9501/api/login?name=sxg&age=25",
+                url:"http://175.178.132.26:9501/api/login?name=sxg&age=25",
                 method:"POST",
                 data: JSON.stringify({
                     hero : "oliver"
