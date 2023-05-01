@@ -40,10 +40,15 @@ class ms {
         $server->echoLog("有客户端连接了");
     }
 
-    public function onRequest(\Socket\Ms\Server $server, \Socket\Ms\Request $request, Response $response) {
-//        $response->setHeader("Content-Type", "application/json");
-//        $response->write(json_encode(['name' => 'sxg', 'age' => '25']));
-        $response->sendFile('www/'.$_REQUEST['uri']);
+    public function onRequest(\Socket\Ms\Server $server, \Socket\Ms\Request $request, Response $response): bool
+    {
+        if (preg_match("/.jpg|.html|.png|.gif|.js|jpeg/", $_REQUEST['uri'])) {
+            $response->sendFile('www/'.$_REQUEST['uri']);
+            return true;
+        }
+        $response->setHeader("Content-Type", "application/json");
+        $response->write(json_encode(['name' => 'sxg', 'age' => '25']));
+        return true;
     }
 
 //    public function onReceive(Socket\Ms\Server $server, $msg, Socket\Ms\TcpConnections $connection) {

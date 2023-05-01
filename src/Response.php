@@ -61,6 +61,7 @@ class Response {
         if (!isset($this->_header['Content-Type'])) {
             $text .= sprintf("Content-Type: %s\r\n", "text/html;charset=utf-8");
         }
+
         $text .= "\r\n";
         $text .= $data;
         $this->_connection->send($text);
@@ -88,6 +89,13 @@ class Response {
             $text .= sprintf("%s: %s\r\n", $key, $value);
         }
 
+        if (isset($_REQUEST['accept_encoding'])) {
+            if (preg_match("/gzip/", $_REQUEST['accept_encoding'])) {
+                $data = gzencode($data);
+                $len = strlen($data);
+                $text .= sprintf("Content-Encoding: %s\r\n", "gzip");
+            }
+        }
         $text .= sprintf("Content-Length: %d\r\n", $len);
         if (!isset($this->_header['Content-Type'])) {
             $text .= sprintf("Content-Type: %s\r\n", $fileType);

@@ -1,0 +1,25 @@
+POST /index.html?name=sxg&age=25 HTTP/1.1
+User-Agent: PostmanRuntime/7.31.3
+Accept: */*
+Cache-Control: no-cache
+Postman-Token: c70ae6b5-5961-4081-ba01-b1dbea7587b5
+Host: 127.0.0.1:9501
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Content-Type: multipart/form-data; boundary=--------------------------000528470066793006251929
+Content-Length: 428
+\r\n
+----------------------------000528470066793006251929\r\n
+Content-Disposition: form-data; name="name"\r\n
+\r\n
+sxg\r\n
+----------------------------000528470066793006251929\r\n
+Content-Disposition: form-data; name="age"\r\n
+\r\n
+25\r\n
+----------------------------000528470066793006251929\r\n
+Content-Disposition: form-data; name="file"; filename="ke.txt"\r\n
+Content-Type: text/plain\r\n
+\r\n
+country=>china\r\n
+----------------------------000528470066793006251929--\r\n

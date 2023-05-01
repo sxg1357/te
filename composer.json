@@ -21,6 +21,7 @@
       "ext-json": "*",
       "ext-sysvmsg": "*",
       "ext-posix": "*",
-      "ext-fileinfo": "*"
+      "ext-fileinfo": "*",
+      "ext-zlib": "*"
     }
 }
