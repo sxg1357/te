@@ -186,7 +186,7 @@ class Server {
                     $this->saveMasterPid();
                     $this->installSignalHandler();
                     $this->forkWorker();
-                    $this->forkTask();
+//                    $this->forkTask();
                     self::$_status = self::STATUS_RUNNING;
                     $this->displayStartInfo();
                     $this->masterWorker();

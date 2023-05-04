@@ -14,4 +14,8 @@ class IndexController extends BaseController {
         $data = array_merge($this->request->_get, $this->request->_post);
         return json_encode($data);
     }
+
+    public function test(): string {
+        return "hello world";
+    }
 }

@@ -22,7 +22,7 @@ class ms {
 //        $this->_server->on("receive", [$this, "onReceive"]);
 //        $this->_server->on("close", [$this, "onClose"]);
         $this->_server->settings([
-            'workerNum' => 1,
+            'workerNum' => 3,
             'unix_server_socket_file' => '/home/sxg/te/sock/unix_sock_server.sock',
             'unix_client_socket_file' => '/home/sxg/te/sock/unix_sock_client.sock',
             'daemon' => false
@@ -37,7 +37,7 @@ class ms {
     }
 
     public function onConnect(Socket\Ms\Server $server, Socket\Ms\TcpConnections $TcpConnections) {
-        $server->echoLog("有客户端连接了");
+//        $server->echoLog("有客户端连接了");
     }
 
     public function onRequest(\Socket\Ms\Server $server, \Socket\Ms\Request $request, Response $response): bool
@@ -67,10 +67,10 @@ class ms {
 //        $connection->send("i am a server ".time());
 //    }
 
-//    public function onClose(Socket\Ms\Server $server, Socket\Ms\TcpConnections $connection) {
+    public function onClose(Socket\Ms\Server $server, Socket\Ms\TcpConnections $connection) {
 //        $server->echoLog("有客户端连接关闭了");
-//        $server->removeClient($connection->_socketFd);
-//    }
+        $server->removeClient($connection->_socketFd);
+    }
 //
 //    public function masterStart(Socket\Ms\Server $server) {
 //        $server->echoLog("master server <pid:%d> start working", posix_getpid());

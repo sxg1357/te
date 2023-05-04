@@ -7,5 +7,6 @@
  */
 
 return [
-    '/api/login' => 'App\Controller\IndexController@index'
+    '/api/login' => 'App\Controller\IndexController@index',
+    '/api/test' => 'App\Controller\IndexController@test',
 ];
