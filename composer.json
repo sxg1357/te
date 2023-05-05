@@ -17,12 +17,13 @@
     "require": {
       "ext-sockets": "*",
       "ext-pcntl": "*",
-      "ext-mbstring": "*",
       "ext-pdo": "*",
       "ext-json": "*",
       "ext-sysvmsg": "*",
       "ext-posix": "*",
       "ext-fileinfo": "*",
-      "ext-zlib": "*"
+      "ext-zlib": "*",
+      "opis/closure": "^3.6",
+      "php-amqplib/php-amqplib": "^2.0"
     }
 }
