@@ -47,7 +47,7 @@ class Server {
         "stream" => "Socket\Ms\Protocols\Stream",
         "text" => "Socket\Ms\Protocols\Text",
         "http" => "Socket\Ms\Protocols\Http",
-        "websocket" => "",
+        "ws" => "Socket\Ms\Protocols\WebSocket",
         "mqtt" => ""
     ];
 

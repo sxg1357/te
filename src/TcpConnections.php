@@ -9,6 +9,7 @@
 namespace Socket\Ms;
 
 use Socket\Ms\Event\Event;
+use Socket\Ms\Protocols\WebSocket;
 
 class TcpConnections {
 
@@ -123,6 +124,25 @@ class TcpConnections {
                     $this->_server->eventCallBak("request", [$request, $response]);
                 }
                 break;
+            case 'ws':
+                /**@var WebSocket $protocol*/
+                $protocol = $this->_server->_protocol;
+                if ($protocol->_websocket_handshake_status == $protocol::WEBSOCKET_START_STATUS) {
+                    //握手成功
+                    if ($this->send()) {
+                        if ($protocol->_websocket_handshake_status == $protocol::WEBSOCKET_RUNNING_STATUS) {
+                            $this->_server->eventCallBak("open", [$this]);
+                        }
+                        else {
+                            $this->close();
+                        }
+                    }
+                } else if ($protocol->_websocket_handshake_status == $protocol::WEBSOCKET_RUNNING_STATUS) {
+                    $this->_server->eventCallBak("message", [$this, $message]);
+                } else {
+                    $this->close();
+                }
+                break;
         }
     }
 
@@ -177,7 +197,7 @@ class TcpConnections {
         return $this->_sendLen > 0;
     }
 
-    public function send($data)
+    public function send($data = '')
     {
         if (!is_resource($this->_socketFd) || feof($this->_socketFd)) {
             $this->close();

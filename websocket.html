@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>菜鸟教程(runoob.com)</title>
+
+    <script type="text/javascript">
+        function WebSocketTest()
+        {
+            // 打开一个 web socket
+            var ws = new WebSocket("ws://127.0.0.1:9501/echo");
+            window.wsobj = ws;
+            ws.onopen = function()
+            {
+                // Web Socket 已连接上，使用 send() 方法发送数据
+                ws.send("test and china and japanese");
+                console.log("数据发送中...");
+            };
+
+            ws.onmessage = function (evt)
+            {
+                var received_msg = evt.data;
+                console.log("数据已接收...");
+            };
+
+            ws.onclose = function()
+            {
+                // 关闭 websocket
+                console.log("连接已关闭...");
+            };
+
+        }
+        
+        function sendMsg() {
+            
+            if (window.wsobj.readyState==1){
+                let msg = "china";
+                for (var i=0;i<13109;i++){
+
+                    msg+="china";
+                }
+                console.log(msg.length);
+                window.wsobj.send(msg);
+            }
+        }
+    </script>
+
+</head>
+<body>
+
+<div id="sse">
+    <a href="javascript:WebSocketTest()">运行 WebSocket</a>
+    <a href="javascript:sendMsg()">sendMsg</a>
+
+</div>
+
+</body>
+</html>
