@@ -127,17 +127,16 @@ class TcpConnections {
             case 'ws':
                 /**@var WebSocket $protocol*/
                 $protocol = $this->_server->_protocol;
-                if ($protocol->_websocket_handshake_status == $protocol::WEBSOCKET_START_STATUS) {
+                if ($protocol->webSocketHandShakeStatus == $protocol::WEBSOCKET_START_STATUS) {
                     //握手成功
                     if ($this->send()) {
-                        if ($protocol->_websocket_handshake_status == $protocol::WEBSOCKET_RUNNING_STATUS) {
+                        if ($protocol->webSocketHandShakeStatus == $protocol::WEBSOCKET_RUNNING_STATUS) {
                             $this->_server->eventCallBak("open", [$this]);
-                        }
-                        else {
+                        } else {
                             $this->close();
                         }
                     }
-                } else if ($protocol->_websocket_handshake_status == $protocol::WEBSOCKET_RUNNING_STATUS) {
+                } else if ($protocol->webSocketHandShakeStatus == $protocol::WEBSOCKET_RUNNING_STATUS) {
                     $this->_server->eventCallBak("message", [$this, $message]);
                 } else {
                     $this->close();

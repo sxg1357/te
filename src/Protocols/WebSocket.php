@@ -8,78 +8,160 @@
 
 namespace Socket\Ms\Protocols;
 
-/**
-+-+-+-+-+-------+-+-------------+-------------------------------+
-|F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-|I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-|N|V|V|V|       |S|             |   (if payload len==126/127)   |
-| |1|2|3|       |K|             |                               |
-+-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
-|     Extended payload length continued, if payload len == 127  |
-+ - - - - - - - - - - - - - - - +-------------------------------+
-|                               |Masking-key, if MASK set to 1  |
-+-------------------------------+-------------------------------+
-| Masking-key (continued)       |          Payload Data         |
-+-------------------------------- - - - - - - - - - - - - - - - +
-:                     Payload Data continued ...                :
-+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-|                     Payload Data continued ...                |
-+---------------------------------------------------------------+
-
- **/
-
 class WebSocket implements Protocols {
 
     public $_http;
-    public $_websocket_handshake_status;
-    const WEBSOCKET_START_STATUS = 0;
-    const WEBSOCKET_RUNNING_STATUS = 1;
-    const WEBSOCKET_CLOSE_STATUS = 2;
+    public $webSocketHandShakeStatus;
+    const WEBSOCKET_START_STATUS = 11;
+    const WEBSOCKET_RUNNING_STATUS = 12;
+    const WEBSOCKET_CLOSE_STATUS = 13;
+
+    public $fin;
+    public $payload_len;
+    public $opcode;
+    public $mask;
+    public $maskKey;
+    const  OPCODE_FRAME = 0x01;
+    const  OPCODE_BINARY = 0x02;
+    const  OPCODE_CLOSED = 0x08;
+    const  OPCODE_PING = 0x09;
+    const  OPCODE_PONG = 0x0a;
+
+    public $headerLen;
+    public $dataLen;
+
 
 
     public function __construct() {
         $this->_http = new Http();
-        $this->_websocket_handshake_status = self::WEBSOCKET_START_STATUS;
+        $this->webSocketHandShakeStatus = self::WEBSOCKET_START_STATUS;
     }
 
-    public function Len($data)
-    {
+    /**
+     * +-+-+-+-+-------+-+-------------+-------------------------------+
+     * |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
+     * |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
+     * |N|V|V|V|       |S|             |   (if payload len==126/127)   |
+     * | |1|2|3|       |K|             |                               |
+     * +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+     * |     Extended payload length continued, if payload len == 127  |
+     * + - - - - - - - - - - - - - - - +-------------------------------+
+     * |                               |Masking-key, if MASK set to 1  |
+     * +-------------------------------+-------------------------------+
+     * | Masking-key (continued)       |          Payload Data         |
+     * +-------------------------------- - - - - - - - - - - - - - - - +
+     * :                     Payload Data continued ...                :
+     * + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+     * |                     Payload Data continued ...                |
+     * +---------------------------------------------------------------+
+     * @param $data
+     * @return bool
+     */
+    public function Len($data): bool {
         // TODO: Implement Len() method.
-        if ($this->_websocket_handshake_status == self::WEBSOCKET_START_STATUS) {
+        if ($this->webSocketHandShakeStatus == self::WEBSOCKET_START_STATUS) {
             return $this->_http->Len($data);
+        } else {
+            //走到这里说明websocket已经建立了连接  需要按照以上格式进行解析
+            if (strlen($data) < 2) {
+                return false;
+            }
+            $firstByte = ord($data[0]);
+            $this->headerLen = 2;
+            //拿到fin  将第一个字节转为十进制和0b10000000进行&运算拿到第一位
+            $this->fin = ($firstByte & 0x80) == 0x80 ? 1 : 0;
+            $this->opcode = $firstByte & 0x0F;
+            if ($this->opcode == self::OPCODE_CLOSED) {
+                $this->webSocketHandShakeStatus = self::WEBSOCKET_CLOSE_STATUS;
+                //这里返回true关闭连接
+                return true;
+            }
+
+            $secondByte = ord($data[1]);
+            $this->mask = ($secondByte & 0x80) == 0x80 ? 1 : 0;
+            if ($this->mask == 0) {
+                $this->webSocketHandShakeStatus = self::WEBSOCKET_CLOSE_STATUS;
+                return false;
+            }
+
+            $this->payload_len = $secondByte & 0x7F;
+            if ($this->payload_len == 126) {
+                //后续 2 个字节代表一个 16 位的无符号整数，该无符号整数的值为数据的长度
+                $len = 0;
+                $len |= ord($data[2]) << 8;
+                $len |= ord($data[3]) << 0;
+                $this->dataLen = $len;
+                $this->headerLen += 2;
+            } else if ($this->payload_len == 127) {
+                //后续 8 个字节代表一个 64 位的无符号整数（最高位为 0），该无符号整数的值为数据的长度
+                $len = 0;
+                $len |= ord($data[2]) << 56;
+                $len |= ord($data[3]) << 48;
+                $len |= ord($data[4]) << 40;
+                $len |= ord($data[5]) << 32;
+                $len |= ord($data[6]) << 24;
+                $len |= ord($data[7]) << 16;
+                $len |= ord($data[8]) << 8;
+                $len |= ord($data[9]) << 0;
+                $this->dataLen = $len;
+                $this->headerLen += 8;
+            } else {
+                $this->dataLen = $this->payload_len;
+            }
+
+            //加上mask-key的长度
+            $this->headerLen += 4;
+
+            $this->maskKey[0] = $data[$this->headerLen - 4];
+            $this->maskKey[1] = $data[$this->headerLen - 3];
+            $this->maskKey[2] = $data[$this->headerLen - 2];
+            $this->maskKey[3] = $data[$this->headerLen - 1];
+            if (strlen($data) < $this->headerLen + $this->dataLen) {
+                return false;
+            }
+            return true;
         }
     }
 
     //处理握手数据
     public function encode($data = '') {
         // TODO: Implement encode() method.
-        if ($this->_websocket_handshake_status == self::WEBSOCKET_START_STATUS) {
+        if ($this->webSocketHandShakeStatus == self::WEBSOCKET_START_STATUS) {
             $handshakeData = $this->handshake();
             if ($handshakeData) {
-                $this->_websocket_handshake_status = self::WEBSOCKET_RUNNING_STATUS;
+                $this->webSocketHandShakeStatus = self::WEBSOCKET_RUNNING_STATUS;
                 return $this->_http->encode($handshakeData);
             } else {
-                $this->_websocket_handshake_status = self::WEBSOCKET_CLOSE_STATUS;
+                $this->webSocketHandShakeStatus = self::WEBSOCKET_CLOSE_STATUS;
                 return $this->_http->encode($this->response400());
             }
         }
     }
 
-    //这里直接处理握手数据
-    public function decode($data = '')
-    {
+
+    public function decode($data = '') {
         // TODO: Implement decode() method.
-        if ($this->_websocket_handshake_status == self::WEBSOCKET_START_STATUS) {
+        if ($this->webSocketHandShakeStatus == self::WEBSOCKET_START_STATUS) {
             $this->_http->decode($data);
+        } else {
+            $data = substr($data, $this->headerLen);
+            //解码 和掩码进行异或运算
+            for ($i = 0; $i < $this->dataLen; $i++) {
+                $data[$i] = $data[$i] ^ $this->maskKey[$i & 0b00000011];
+            }
+            return $data;
         }
     }
 
     public function msgLen($data = '') {
         // TODO: Implement msgLen() method.
-        if ($this->_websocket_handshake_status == self::WEBSOCKET_START_STATUS) {
+        if ($this->webSocketHandShakeStatus == self::WEBSOCKET_START_STATUS) {
             return $this->_http->msgLen($data);
+        } else {
+            return $this->headerLen + $this->dataLen;
         }
     }
+
 
     public function response400($data=''): string {
         $len = strlen($data);
