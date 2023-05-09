@@ -75,6 +75,7 @@ class ms {
 
     public function onMessage(Socket\Ms\Server $server, Socket\Ms\TcpConnections $connection, $frame) {
         $server->echoLog("有客户端发送数据:%s", $frame);
+        $connection->send("是呀是呀");
     }
 
     public function onClose(Socket\Ms\Server $server, Socket\Ms\TcpConnections $connection) {

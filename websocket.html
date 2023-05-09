@@ -13,14 +13,12 @@
             ws.onopen = function()
             {
                 // Web Socket 已连接上，使用 send() 方法发送数据
-                ws.send("china");
-                console.log("数据发送中...");
             };
 
             ws.onmessage = function (evt)
             {
                 var received_msg = evt.data;
-                console.log("数据已接收...");
+                console.log(received_msg);
             };
 
             ws.onclose = function()
@@ -34,11 +32,7 @@
         function sendMsg() {
             
             if (window.wsobj.readyState==1){
-                let msg = "china";
-                for (var i=0;i<13109;i++){
-
-                    msg+="china";
-                }
+                let msg = "王跃是臭弟弟吗";
                 console.log(msg.length);
                 window.wsobj.send(msg);
             }

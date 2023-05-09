@@ -135,6 +135,38 @@ class WebSocket implements Protocols {
                 $this->webSocketHandShakeStatus = self::WEBSOCKET_CLOSE_STATUS;
                 return $this->_http->encode($this->response400());
             }
+        } else {
+            $dataLen = strlen($data);
+            $firstByte = 0x80 | self::OPCODE_FRAME;
+            $secondByte = 0x00 | $dataLen;
+            $headerLen = 2;
+            if ($dataLen <= 125) {
+                $frame = chr($firstByte).chr($secondByte).$data;
+            } else if ($dataLen <= 65536) {
+                $secondByte = 126;
+                $len1 = $dataLen >> 8 & 0xFF;
+                $len2 = $dataLen >> 0 & 0xFF;
+                $frame = chr($firstByte).chr($secondByte).chr($len1).chr($len2).$data;
+                $headerLen += 2;
+            } else {
+                $secondByte = 127;
+                $len1 = $dataLen >> 56 & 0xFF;
+                $len2 = $dataLen >> 48 & 0xFF;
+                $len3 = $dataLen >> 40 & 0xFF;
+                $len4 = $dataLen >> 32 & 0xFF;
+                $len5 = $dataLen >> 24 & 0xFF;
+                $len6 = $dataLen >> 16 & 0xFF;
+                $len7 = $dataLen >>  8 & 0xFF;
+                $len8 = $dataLen >>  0 & 0xFF;
+                $frame = chr($firstByte).chr($secondByte)
+                        .chr($len1).chr($len2)
+                        .chr($len3).chr($len4)
+                        .chr($len5).chr($len6)
+                        .chr($len7).chr($len8)
+                        .$data;
+                $headerLen += 8;
+            }
+            return [$headerLen + $dataLen, $frame];
         }
     }
 
