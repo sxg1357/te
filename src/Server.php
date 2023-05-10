@@ -369,12 +369,16 @@ class Server {
         }
         cli_set_process_title("sxg/worker");
 
-        self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
+       $this->acceptClient();
 //        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
         $this->eventCallBak("workerStart", [$this]);
         $this->eventLoop();
         $this->eventCallBak("workerStop", [$this]);
         exit(0);
+    }
+
+    public function acceptClient() {
+        self::$_eventLoop->add($this->_socket, Event::READ, [$this, "accept"]);
     }
 
     public function tasker($i) {

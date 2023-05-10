@@ -92,11 +92,52 @@ class ms {
     }
 
     public function workerStart(Socket\Ms\Server $server) {
-//        $server->echoLog("worker <pid:%d> start working", posix_getpid());
         global $routes;
         global $dispatch;
         $routes = require_once "app/routes/api.php";
         $dispatch = new \App\Controller\DispatchController();
+
+        //websocket服务中添加http服务
+        $httpServer = new Socket\Ms\Server("http://0.0.0.0:9502");
+        $httpServer->on("request", function (\Socket\Ms\Server $server, \Socket\Ms\Request $request, Response $response) {
+            if (preg_match("/.jpg|.html|.png|.gif|.js|jpeg/", $_REQUEST['uri'])) {
+                $response->sendFile('www/'.$_REQUEST['uri']);
+                return true;
+            }
+            global $routes;
+            global $dispatch;
+            //收到客户端的请求后给websocket客户端发消息
+            foreach ($server::$_connections as $connection) {
+                if ($connection->protocol instanceof \Socket\Ms\Protocols\WebSocket) {
+                    $connection->send(json_encode($request->_get, JSON_UNESCAPED_UNICODE));
+                }
+            }
+            $dispatch->callAction($routes, $request, $response);
+            return true;
+        });
+        $httpServer->listen();
+        $httpServer->acceptClient();
+
+        //websocket服务中添加tcp服务
+        $tcpServer = new \Socket\Ms\Server("text://0.0.0.0:9503");
+        $tcpServer->on("connect", function (Socket\Ms\Server $server, Socket\Ms\TcpConnections $TcpConnections) {
+            echo "有客户端连接上来了\r\n";
+        });
+        $tcpServer->on("receive", function (Socket\Ms\Server $server, $msg, Socket\Ms\TcpConnections $connection) {
+            //收到客户端的请求后给websocket客户端发消息
+            echo "接收到tcp客户端的消息$msg\r\n";
+            foreach ($server::$_connections as $connect) {
+                if ($connect->protocol instanceof \Socket\Ms\Protocols\WebSocket) {
+                    $connect->send($msg.date('Y-m-d H:i:s'));
+                }
+            }
+            $connection->send("Hello, World");
+        });
+        $tcpServer->listen();
+        $tcpServer->acceptClient();
+
+        echo "http server listen on 0.0.0.0:9502\r\n";
+        echo "tcp  server listen on 0.0.0.0:9503\r\n";
     }
 
     public function workerStop(Socket\Ms\Server $server) {
