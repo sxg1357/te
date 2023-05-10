@@ -8,10 +8,12 @@
 
 namespace Socket\Ms;
 
+use phpseclib3\Math\BigInteger\Engines\PHP;
 use Socket\Ms\Event\Epoll;
 use Socket\Ms\Event\Event;
 use Socket\Ms\Event\Select;
 use Opis\Closure\SerializableClosure;
+use Socket\Ms\Protocols\WebSocket;
 
 class Server {
 
@@ -454,7 +456,8 @@ class Server {
     public function accept() {
         $connId = stream_socket_accept($this->_socket, -1, $peer_name);
         if (is_resource($connId)) {
-            $connection = new TcpConnections($connId, $peer_name, $this);
+            $protocol = clone $this->_protocol;
+            $connection = new TcpConnections($connId, $peer_name, $this, $protocol);
             $this->onClientJoin();
             self::$_connections[(int)($connId)] = $connection;
             $this->eventCallBak("connect", [$connection]);

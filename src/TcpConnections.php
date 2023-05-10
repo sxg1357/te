@@ -8,6 +8,7 @@
 
 namespace Socket\Ms;
 
+use phpseclib3\Math\BigInteger\Engines\PHP;
 use Socket\Ms\Event\Event;
 use Socket\Ms\Protocols\WebSocket;
 
@@ -35,17 +36,19 @@ class TcpConnections {
     const STATUS_CONNECTED = 11;
     public $_status;
 
+    public $protocol;
 
-    public function __construct($socketFd, $clientIp, $server) {
+
+    public function __construct($socketFd, $clientIp, $server, $protocol) {
         $this->_socketFd = $socketFd;
         $this->_clientIp = $clientIp;
         $this->_server = $server;
         $this->_heartTime = time();
         $this->_status = self::STATUS_CONNECTED;
+        $this->protocol = $protocol;
         stream_set_blocking($this->_socketFd, 0);
         stream_set_write_buffer($this->_socketFd, 0);
         stream_set_read_buffer($this->_socketFd, 0);
-
         Server::$_eventLoop->add($this->_socketFd, Event::READ, [$this, "recvSocket"]);
         //客户端上来之后，不要马上添加这个写事件，否则它会一直触发可写事件，导致执行大量的发送操作
         //会消耗cpu的资源
@@ -84,15 +87,15 @@ class TcpConnections {
     public function handleMessage() {
         /**@var server $server*/
         $server = $this->_server;
-        if (is_object($server->_protocol) && $server->_protocol != null) {
-            while ($server->_protocol->Len($this->_recvBuffer)) {
-                $msgLen = $server->_protocol->msgLen($this->_recvBuffer);
+        if (is_object($this->protocol) && $this->protocol != null) {
+            while ($this->protocol->Len($this->_recvBuffer)) {
+                $msgLen = $this->protocol->msgLen($this->_recvBuffer);
                 //截取一条消息
                 $oneMsg = substr($this->_recvBuffer, 0, $msgLen);
                 $this->_recvBuffer = substr($this->_recvBuffer, $msgLen);
                 $this->_recvLen -= $msgLen;
                 $server->onMsg();
-                $message = $server->_protocol->decode($oneMsg);
+                $message = $this->protocol->decode($oneMsg);
                 $this->eventCallBack($message);
 //                $server->eventCallBak("receive", [$message, $this]);
                 $this->resetHeartTime();
@@ -125,18 +128,16 @@ class TcpConnections {
                 }
                 break;
             case 'ws':
-                /**@var WebSocket $protocol*/
-                $protocol = $this->_server->_protocol;
-                if ($protocol->webSocketHandShakeStatus == $protocol::WEBSOCKET_START_STATUS) {
+                if ($this->protocol->webSocketHandShakeStatus == $this->protocol::WEBSOCKET_START_STATUS) {
                     //握手成功
                     if ($this->send()) {
-                        if ($protocol->webSocketHandShakeStatus == $protocol::WEBSOCKET_RUNNING_STATUS) {
+                        if ($this->protocol->webSocketHandShakeStatus == $this->protocol::WEBSOCKET_RUNNING_STATUS) {
                             $this->_server->eventCallBak("open", [$this]);
                         } else {
                             $this->close();
                         }
                     }
-                } else if ($protocol->webSocketHandShakeStatus == $protocol::WEBSOCKET_RUNNING_STATUS) {
+                } else if ($this->protocol->webSocketHandShakeStatus == $this->protocol::WEBSOCKET_RUNNING_STATUS) {
                     $this->_server->eventCallBak("message", [$this, $message]);
                 } else {
                     $this->close();
@@ -205,8 +206,8 @@ class TcpConnections {
         $len = strlen($data);
         $server = $this->_server;
         if ($this->_sendLen + $len < $this->_sendBufferSize) {
-            if (is_object($server->_protocol) && $server->_protocol != null) {
-                $bin = $this->_server->_protocol->encode($data);
+            if (is_object($this->protocol) && $this->protocol != null) {
+                $bin = $this->protocol->encode($data);
                 $this->_sendBuffer .= $bin[1];
                 $this->_sendLen += $bin[0];
             } else {

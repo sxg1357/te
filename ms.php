@@ -79,7 +79,7 @@ class ms {
     }
 
     public function onClose(Socket\Ms\Server $server, Socket\Ms\TcpConnections $connection) {
-//        $server->echoLog("有客户端连接关闭了");
+        $server->echoLog("有客户端连接关闭了");
         $server->removeClient($connection->_socketFd);
     }
 

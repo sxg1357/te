@@ -37,6 +37,12 @@
                 window.wsobj.send(msg);
             }
         }
+
+        function close() {
+            if (window.wsobj.readyState==1){
+                window.wsobj.close();
+            }
+        }
     </script>
 
 </head>
@@ -45,6 +51,7 @@
 <div id="sse">
     <a href="javascript:WebSocketTest()">运行 WebSocket</a>
     <a href="javascript:sendMsg()">sendMsg</a>
+    <a href="javascript:close()">close</a>
 
 </div>
 

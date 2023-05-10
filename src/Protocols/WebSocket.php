@@ -8,6 +8,8 @@
 
 namespace Socket\Ms\Protocols;
 
+use phpseclib3\Math\BigInteger\Engines\PHP;
+
 class WebSocket implements Protocols {
 
     public $_http;
@@ -61,7 +63,7 @@ class WebSocket implements Protocols {
         // TODO: Implement Len() method.
         if ($this->webSocketHandShakeStatus == self::WEBSOCKET_START_STATUS) {
             return $this->_http->Len($data);
-        } else {
+        } else if ($this->webSocketHandShakeStatus == self::WEBSOCKET_RUNNING_STATUS) {
             //走到这里说明websocket已经建立了连接  需要按照以上格式进行解析
             if (strlen($data) < 2) {
                 return false;
@@ -72,6 +74,8 @@ class WebSocket implements Protocols {
             $this->fin = ($firstByte & 0x80) == 0x80 ? 1 : 0;
             $this->opcode = $firstByte & 0x0F;
             if ($this->opcode == self::OPCODE_CLOSED) {
+                //客户端连接关闭时会走这里
+                //注意：由于上次连接关闭导致状态为关闭，再次握手时状态会出问题，所以每个连接要有一个单独的协议类的状态信息
                 $this->webSocketHandShakeStatus = self::WEBSOCKET_CLOSE_STATUS;
                 //这里返回true关闭连接
                 return true;
@@ -120,6 +124,8 @@ class WebSocket implements Protocols {
                 return false;
             }
             return true;
+        } else {
+            return false;
         }
     }
 
