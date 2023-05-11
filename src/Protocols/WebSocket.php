@@ -202,8 +202,8 @@ class WebSocket implements Protocols {
 
 
     public function response400($data=''): string {
-        $len = strlen($data);
-        $text = sprintf("HTTP/1.1 %d %s\r\n", 200, 'OK');
+        $len   = strlen($data);
+        $text  = sprintf("HTTP/1.1 %d %s\r\n", 200, 'OK');
         $text .= sprintf("Date: %s\r\n", date("Y-m-d H:i:s"));
         $text .= sprintf("OS: %s\r\n", PHP_OS);
         $text .= sprintf("Server: %s\r\n", "Sxg");
@@ -235,7 +235,7 @@ class WebSocket implements Protocols {
      */
 
     /**
-     * 返回数据格式
+     *返回数据格式
      *HTTP/1.1 101 Switching Protocols
      *Connection:Upgrade
      *Upgrade: websocket
@@ -246,7 +246,7 @@ class WebSocket implements Protocols {
         {
             $key = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
             $acceptKey = base64_encode(sha1($_REQUEST['sec_websocket_key'].$key, true));
-            $handshakeResponse = "HTTP/1.1 101 Switching Protocols\r\n";
+            $handshakeResponse  = "HTTP/1.1 101 Switching Protocols\r\n";
             $handshakeResponse .= sprintf("Upgrade: %s\r\n", "websocket");
             $handshakeResponse .= sprintf("Connection: %s\r\n", "Upgrade");
             $handshakeResponse .= sprintf("Sec-WebSocket-Accept: %s\r\n\r\n", $acceptKey);

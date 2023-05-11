@@ -204,7 +204,6 @@ class TcpConnections {
             return false;
         }
         $len = strlen($data);
-        $server = $this->_server;
         if ($this->_sendLen + $len < $this->_sendBufferSize) {
             if (is_object($this->protocol) && $this->protocol != null) {
                 $bin = $this->protocol->encode($data);

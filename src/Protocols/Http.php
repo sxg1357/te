@@ -124,6 +124,7 @@ class Http implements Protocols {
         if ($body) {
             $this->parserBody($body);
         }
+        return $body;
     }
 
     public function msgLen($data = '')

@@ -136,8 +136,8 @@ class ms {
         $tcpServer->listen();
         $tcpServer->acceptClient();
 
-        echo "http server listen on 0.0.0.0:9502\r\n";
-        echo "tcp  server listen on 0.0.0.0:9503\r\n";
+        echo "\e[33;40mHttp server listen on 0.0.0.0:9502\e[0m\r\n";
+        echo "\e[33;40mTcp  server listen on 0.0.0.0:9503\e[0m\r\n";
     }
 
     public function workerStop(Socket\Ms\Server $server) {

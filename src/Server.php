@@ -52,6 +52,7 @@ class Server {
         "ws" => "Socket\Ms\Protocols\WebSocket",
         "mqtt" => ""
     ];
+    public $usingProtocol;
 
     static public $_eventLoop;
 
@@ -68,6 +69,10 @@ class Server {
         }
         $this->_starttime = time();
         $this->_address = "tcp:$ip:$port";
+        $this->usingProtocol = $protocol;
+        if ($protocol == 'ws') {
+            $this->usingProtocol = 'websocket';
+        }
     }
 
     public function settings($settings) {
@@ -494,6 +499,7 @@ class Server {
         $info .= "\e[33;40mSxg workerNum:".$this->_settings['workerNum']."\e[0m\r\n";
         $info .= "\e[33;40mSxg taskNum:".$this->_settings['taskNum']."\e[0m\r\n";
         $info .= "\e[33;40mSxg server listening on:".$this->_address."\e[0m\r\n";
+        $info .= "\e[33;40mUsing protocol:".$this->usingProtocol."\e[0m\r\n";
         $info .= "\e[33;40mSxg run mode:".($this->checkSetting('daemon') ? 'daemon' : 'debug')."\e[0m\r\n";
         fwrite(STDOUT, $info);
     }

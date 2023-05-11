@@ -7,9 +7,12 @@
  */
 namespace Socket\Ms;
 
+use Socket\Ms\Event\Epoll;
 use Socket\Ms\Event\Event;
 use Socket\Ms\Event\Select;
+use Socket\Ms\Protocols\Http;
 use Socket\Ms\Protocols\Stream;
+use Socket\Ms\Protocols\WebSocketClient;
 
 class Client {
 
@@ -39,6 +42,18 @@ class Client {
 
     public static $_eventLoop;
 
+    public $_protocols = [
+        "stream" => "Socket\Ms\Protocols\Stream",
+        "text" => "Socket\Ms\Protocols\Text",
+        "http" => "Socket\Ms\Protocols\Http",
+        "ws" => "Socket\Ms\Protocols\WebSocket",
+        "mqtt" => ""
+    ];
+
+    public $localAddr;
+
+    public $usingProtocol;
+
     public function onSendWrite()
     {
         ++$this->_sendNum;
@@ -60,9 +75,19 @@ class Client {
     }
 
     public function __construct($address) {
-        $this->_address = $address;
-        $this->_protocol = new Stream();
-        self::$_eventLoop = new Select();
+        list($protocol, $ip, $port) = explode(":", $address);
+        if (isset($this->_protocols[$protocol])) {
+            $this->usingProtocol = $protocol;
+            $this->_protocol = new $this->_protocols[$protocol]();
+        } else {
+            $this->usingProtocol = "tcp";
+        }
+        $this->localAddr = "tcp://".$ip.":".$port;
+        if (DIRECTORY_SEPARATOR == "/") {
+            self::$_eventLoop = new Epoll();
+        } else {
+            self::$_eventLoop = new Select();
+        }
     }
 
     public function start() {
@@ -71,12 +96,43 @@ class Client {
             stream_set_blocking($this->_socket, 0);
             stream_set_write_buffer($this->_socket, 0);
             stream_set_read_buffer($this->_socket, 0);
-            $this->eventCallBak("connect");
+            if ($this->usingProtocol == "ws") {
+                $this->handleEvent();
+            } else {
+                $this->eventCallBak("connect", []);
+            }
             $this->_status = self::STATUS_CONNECTED;
             self::$_eventLoop->add($this->_socket, Event::READ, [$this, "recvSocket"]);
         } else {
             $this->eventCallBak("error", [$error_code, $error_message]);
             exit(0);
+        }
+    }
+
+    public function handleEvent($message = "") {
+        switch ($this->usingProtocol) {
+            case "tcp":
+            case "text":
+            case "stream":
+                $this->eventCallBak("receive", [$message]);
+                break;
+            case "ws":
+                if ($this->_protocol->webSocketHandShakeStatus == WebSocketClient::WEBSOCKET_START_STATUS) {
+                    if (!$this->send()) {
+                        $this->close();
+                    }
+                } else if ($this->_protocol->webSocketHandShakeStatus == WebSocketClient::WEBSOCKET_PREPARE_STATUS) {
+                    if ($this->_protocol->verifyWebSocketKey()) {
+                        $this->eventCallBak("open");
+                    } else {
+                        $this->close();
+                    }
+                } else if ($this->_protocol->webSocketHandShakeStatus == WebSocketClient::WEBSOCKET_RUNNING_STATUS) {
+                    $this->eventCallBak("message", [$message]);
+                } else {
+                    $this->close();
+                }
+                break;
         }
     }
 
@@ -129,7 +185,7 @@ class Client {
             return false;
     }
 
-    public function send($data) {
+    public function send($data = "") {
         if (!is_resource($this->_socket) || feof($this->_socket)) {
             $this->close();
             return false;
@@ -212,9 +268,9 @@ class Client {
             $oneMsg = substr($this->_recvBuffer, 0, $msgLen);
             $this->_recvBuffer = substr($this->_recvBuffer, $msgLen);
             $this->_recvLen -= $msgLen;
-
             $message = $this->_protocol->decode($oneMsg);
-            $this->eventCallBak("receive", [$message]);
+            $this->handleEvent($message);
+//            $this->eventCallBak("receive", [$message]);
         }
     }
 }
