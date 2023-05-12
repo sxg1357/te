@@ -154,6 +154,11 @@ class WebSocketClient implements Protocols {
         return [strlen($text), $text];
     }
 
+    public function ping(): string {
+        //给服务器发送ping 只需要两个字节就好
+        return chr(0x80|self::OPCODE_PING).chr(0x00);
+    }
+
     public function verifyWebSocketKey() : bool {
         if (isset($_REQUEST['sec_websocket_accept']) && $_REQUEST['sec_websocket_accept']) {
             if ($_REQUEST['sec_websocket_accept'] == base64_encode(sha1($this->websocketKey."258EAFA5-E914-47DA-95CA-C5AB0DC85B11", true))) {

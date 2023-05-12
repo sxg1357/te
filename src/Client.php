@@ -102,6 +102,7 @@ class Client {
             }
             $this->_status = self::STATUS_CONNECTED;
             self::$_eventLoop->add($this->_socket, Event::READ, [$this, "recvSocket"]);
+            self::$_eventLoop->add(5, Event::EVENT_TIMER, [$this, "sendPing"]);
         } else {
             $this->eventCallBak("error", [$error_code, $error_message]);
             exit(0);
@@ -244,5 +245,13 @@ class Client {
             $this->handleEvent($message);
 //            $this->eventCallBak("receive", [$message]);
         }
+    }
+
+    public function sendPing($timer_id, $args) {
+        if ($this->_protocol->webSocketHandShakeStatus == WebSocketClient::WEBSOCKET_RUNNING_STATUS) {
+            $ping = $this->_protocol->ping();
+            fwrite($this->_socket, $ping);
+        }
+
     }
 }

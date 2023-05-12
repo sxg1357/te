@@ -375,7 +375,7 @@ class Server {
         cli_set_process_title("sxg/worker");
 
         $this->acceptClient();
-        self::$_eventLoop->add(5, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
+        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
         $this->eventCallBak("workerStart", [$this]);
         $this->eventLoop();
         $this->eventCallBak("workerStop", [$this]);

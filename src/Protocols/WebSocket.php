@@ -83,6 +83,10 @@ class WebSocket implements Protocols {
                 return true;
             }
 
+            if ($this->opcode == self::OPCODE_PING) {
+                return true;
+            }
+
             $secondByte = ord($data[1]);
             $this->mask = ($secondByte & 0x80) == 0x80 ? 1 : 0;
             echo "mask:$this->mask\r\n";
@@ -257,5 +261,9 @@ class WebSocket implements Protocols {
         } else {
             return false;
         }
+    }
+
+    public function ping(): string {
+        return chr(0x0F&self::OPCODE_PING).chr(0x00);
     }
 }
