@@ -72,7 +72,9 @@ class WebSocket implements Protocols {
             $this->headerLen = 2;
             //拿到fin  将第一个字节转为十进制和0b10000000进行&运算拿到第一位
             $this->fin = ($firstByte & 0x80) == 0x80 ? 1 : 0;
+            echo "fin:$this->fin\r\n";
             $this->opcode = $firstByte & 0x0F;
+            echo "opcode:$this->opcode\r\n";
             if ($this->opcode == self::OPCODE_CLOSED) {
                 //客户端连接关闭时会走这里
                 //注意：由于上次连接关闭导致状态为关闭，再次握手时状态会出问题，所以每个连接要有一个单独的协议类的状态信息
@@ -83,6 +85,7 @@ class WebSocket implements Protocols {
 
             $secondByte = ord($data[1]);
             $this->mask = ($secondByte & 0x80) == 0x80 ? 1 : 0;
+            echo "mask:$this->mask\r\n";
             if ($this->mask == 0) {
                 $this->webSocketHandShakeStatus = self::WEBSOCKET_CLOSE_STATUS;
                 return false;
@@ -112,7 +115,7 @@ class WebSocket implements Protocols {
             } else {
                 $this->dataLen = $this->payload_len;
             }
-
+            echo "payload_len:$this->payload_len\r\n";
             //加上mask-key的长度
             $this->headerLen += 4;
 

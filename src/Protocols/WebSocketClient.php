@@ -36,6 +36,7 @@ class WebSocketClient implements Protocols {
 
     public function __construct() {
         $this->_http = new Http();
+        $this->webSocketHandShakeStatus = self::WEBSOCKET_START_STATUS;
     }
 
     /**
@@ -69,12 +70,15 @@ class WebSocketClient implements Protocols {
             $bin = unpack("CfirstByte/CsecondByte", $data);
             $this->headerLen = 2;
             $this->fin = $bin['firstByte'] & 0b10000000 == 0x80 ? 1 : 0;
+            echo "fin:$this->fin\r\n";
             $this->opcode = $bin['firstByte'] & 0b00001111;
+            echo "opcode:$this->opcode\r\n";
             if ($this->opcode == self::OPCODE_CLOSED) {
                 $this->webSocketHandShakeStatus = self::WEBSOCKET_CLOSE_STATUS;
                 return true;
             }
             $this->payload_len = $bin['secondByte'] & 0b01111111;
+            echo "payload_len:$this->payload_len\r\n";
             if ($this->payload_len == 0b01111110) {
                 $this->headerLen += 2;
                 $bin = unpack("Cf/Cs/ndataLen", $data);
@@ -103,16 +107,16 @@ class WebSocketClient implements Protocols {
             $maskKey = chr(0x00).chr(0x00).chr(0x00).chr(0x00);
             $dataLen = strlen($data);
             for ($i = 0; $i < $dataLen; $i++) {
-                $data[$i] = $data[$i] ^ $maskKey[$i & 0b0011];
+                $data[$i] = $data[$i] ^ $maskKey[$i & 0b00000011];
             }
             $headerLen = 2;
             if ($dataLen <= 125) {
-                $frame = pack("CCN", 0b10000001, 0b01111111 & $dataLen, $maskKey).$data;
+                $frame = pack("CCN", 0b10000001, 0b10000000 | $dataLen, $maskKey).$data;
             } else if ($dataLen <= 65536) {
-                $frame = pack("CCnN", 0b10000001, 0b01111110, $dataLen, $maskKey).$data;
+                $frame = pack("CCnN", 0b10000001, 0b11111110, $dataLen, $maskKey).$data;
                 $headerLen += 2;
             } else {
-                $frame = pack("CCJN", 0b10000001, 0b01111110, $dataLen, $maskKey).$data;
+                $frame = pack("CCJN", 0b10000001, 0b11111111, $dataLen, $maskKey).$data;
                 $headerLen += 8;
             }
             $headerLen += 4;
@@ -125,7 +129,7 @@ class WebSocketClient implements Protocols {
         if ($this->webSocketHandShakeStatus == self::WEBSOCKET_PREPARE_STATUS) {
             return $this->_http->decode($data);
         } else {
-            return substr($data, $this->headerLen + $this->dataLen);
+            return substr($data, $this->headerLen);
         }
     }
 
@@ -138,7 +142,7 @@ class WebSocketClient implements Protocols {
         }
     }
 
-    public function handshake(): string {
+    public function handshake(): array {
         $this->websocketKey = base64_encode(md5(mt_rand(), true));
         $text  = sprintf("GET / HTTP/1.1\r\n");
         $text .= sprintf("Host: %s\r\n", "127.0.0.1:9501");
@@ -147,12 +151,12 @@ class WebSocketClient implements Protocols {
         $text .= sprintf("Sec-WebSocket-Version: %s\r\n", "13");
         $text .= sprintf("Sec-WebSocket-Key: %s\r\n", $this->websocketKey);
         $text .= "\r\n";
-        return $text;
+        return [strlen($text), $text];
     }
 
     public function verifyWebSocketKey() : bool {
-        if (isset($_REQUEST['sec_webSocket_accept']) && $_REQUEST['sec_webSocket_accept']) {
-            if ($_REQUEST['sec_webSocket_accept'] == base64_encode(sha1($this->websocketKey."258EAFA5-E914-47DA-95CA-C5AB0DC85B11", true))) {
+        if (isset($_REQUEST['sec_websocket_accept']) && $_REQUEST['sec_websocket_accept']) {
+            if ($_REQUEST['sec_websocket_accept'] == base64_encode(sha1($this->websocketKey."258EAFA5-E914-47DA-95CA-C5AB0DC85B11", true))) {
                 $this->webSocketHandShakeStatus = WebSocketClient::WEBSOCKET_RUNNING_STATUS;
                 return true;
             }

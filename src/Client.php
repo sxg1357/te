@@ -31,7 +31,6 @@ class Client {
     public $_sendBufferFull = 0;
 
     public $_protocol;
-    public $_address;
 
     public $_sendNum = 0;
     public $_sendMsgNum = 0;
@@ -46,7 +45,7 @@ class Client {
         "stream" => "Socket\Ms\Protocols\Stream",
         "text" => "Socket\Ms\Protocols\Text",
         "http" => "Socket\Ms\Protocols\Http",
-        "ws" => "Socket\Ms\Protocols\WebSocket",
+        "ws" => "Socket\Ms\Protocols\WebSocketClient",
         "mqtt" => ""
     ];
 
@@ -82,7 +81,7 @@ class Client {
         } else {
             $this->usingProtocol = "tcp";
         }
-        $this->localAddr = "tcp://".$ip.":".$port;
+        $this->localAddr = "tcp:".$ip.":".$port;
         if (DIRECTORY_SEPARATOR == "/") {
             self::$_eventLoop = new Epoll();
         } else {
@@ -91,7 +90,7 @@ class Client {
     }
 
     public function start() {
-        $this->_socket = stream_socket_client($this->_address, $error_code, $error_message);
+        $this->_socket = stream_socket_client($this->localAddr, $error_code, $error_message);
         if (is_resource($this->_socket)) {
             stream_set_blocking($this->_socket, 0);
             stream_set_write_buffer($this->_socket, 0);
@@ -138,34 +137,7 @@ class Client {
 
     public function loop()
     {
-        return self::$_eventLoop->loop1();
-    }
-
-    public function eventLoop()
-    {
-        if (is_resource($this->_socket)) {
-            $readFds = [$this->_socket];
-            $writeFds = [$this->_socket];
-            $expFds = [$this->_socket];
-
-            set_error_handler(function () {});
-            $ret = stream_select($readFds, $writeFds, $expFds, NULL, NULL);
-            restore_error_handler();
-            if ($ret <= 0 || $ret === false) {
-                return false;
-            }
-
-            if ($readFds) {
-                $this->recvSocket();
-            }
-
-            if ($writeFds) {
-                $this->writeSocket();
-            }
-            return true;
-        } else {
-            return false;
-        }
+        return self::$_eventLoop->loop();
     }
 
     public function close() {
