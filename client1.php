@@ -17,6 +17,7 @@ $client->on("open", function (\Socket\Ms\Client $client) {
 
 $client->on("message", function (\Socket\Ms\Client $client, $data) {
     echo "recv from server $data\r\n";
+    $client->send("hellox");
 });
 
 $client->on("close", function (\Socket\Ms\Client $client) {

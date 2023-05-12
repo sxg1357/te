@@ -374,8 +374,8 @@ class Server {
         }
         cli_set_process_title("sxg/worker");
 
-       $this->acceptClient();
-//        self::$_eventLoop->add(1, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
+        $this->acceptClient();
+        self::$_eventLoop->add(5, Event::EVENT_TIMER, [$this, "checkHeartTime"]);
         $this->eventCallBak("workerStart", [$this]);
         $this->eventLoop();
         $this->eventCallBak("workerStop", [$this]);
@@ -436,7 +436,7 @@ class Server {
     }
 
     public function checkHeartTime() {
-        $this->echoLog("执行心跳检测了");
+//        $this->echoLog("执行心跳检测了");
         foreach (self::$_connections as $idx => $fd) {
             /**@var TcpConnections $fd */
             if ($fd->checkHeartTime()) {

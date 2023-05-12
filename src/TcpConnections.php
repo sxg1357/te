@@ -30,7 +30,7 @@ class TcpConnections {
     public $_sendBufferFull = 0;
 
     public $_heartTime = 0;
-    const HEART_BEAT = 5;
+    const HEART_BEAT = 10;
 
     const STATUS_CLOSE = 10;
     const STATUS_CONNECTED = 11;
