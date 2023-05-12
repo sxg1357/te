@@ -128,7 +128,9 @@ class Client {
                         $this->close();
                     }
                 } else if ($this->_protocol->webSocketHandShakeStatus == WebSocketClient::WEBSOCKET_RUNNING_STATUS) {
-                    $this->eventCallBak("message", [$message]);
+                    if ($message) {
+                        $this->eventCallBak("message", [$message]);
+                    }
                 } else {
                     $this->close();
                 }
@@ -250,8 +252,9 @@ class Client {
     public function sendPing($timer_id, $args) {
         if ($this->_protocol->webSocketHandShakeStatus == WebSocketClient::WEBSOCKET_RUNNING_STATUS) {
             $ping = $this->_protocol->ping();
-            fwrite($this->_socket, $ping);
+            if (is_resource($this->_socket)) {
+                fwrite($this->_socket, $ping);
+            }
         }
-
     }
 }

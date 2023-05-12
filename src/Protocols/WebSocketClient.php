@@ -67,16 +67,23 @@ class WebSocketClient implements Protocols {
             if (strlen($data) < 2) {
                 return false;
             }
+            $this->dataLen = 0;
             $bin = unpack("CfirstByte/CsecondByte", $data);
             $this->headerLen = 2;
-            $this->fin = $bin['firstByte'] & 0b10000000 == 0x80 ? 1 : 0;
+            $this->fin = ($bin['firstByte'] & 0x80) == 0x80 ? 1 : 0;
             echo "fin:$this->fin\r\n";
-            $this->opcode = $bin['firstByte'] & 0b00001111;
+            $this->opcode = $bin['firstByte'] & 0x0f;
             echo "opcode:$this->opcode\r\n";
             if ($this->opcode == self::OPCODE_CLOSED) {
                 $this->webSocketHandShakeStatus = self::WEBSOCKET_CLOSE_STATUS;
                 return true;
             }
+
+            if ($this->opcode == self::OPCODE_PONG) {
+                echo "服务端响应PONG\r\n";
+                return true;
+            }
+
             $this->payload_len = $bin['secondByte'] & 0b01111111;
             echo "payload_len:$this->payload_len\r\n";
             if ($this->payload_len == 0b01111110) {

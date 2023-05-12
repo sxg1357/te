@@ -8,7 +8,6 @@
 
 namespace Socket\Ms\Protocols;
 
-use phpseclib3\Math\BigInteger\Engines\PHP;
 
 class WebSocket implements Protocols {
 
@@ -68,6 +67,8 @@ class WebSocket implements Protocols {
             if (strlen($data) < 2) {
                 return false;
             }
+            $this->dataLen = 0;
+
             $firstByte = ord($data[0]);
             $this->headerLen = 2;
             //拿到fin  将第一个字节转为十进制和0b10000000进行&运算拿到第一位
@@ -84,6 +85,7 @@ class WebSocket implements Protocols {
             }
 
             if ($this->opcode == self::OPCODE_PING) {
+                echo "客户端发送PING";
                 return true;
             }
 
@@ -149,6 +151,10 @@ class WebSocket implements Protocols {
                 return $this->_http->encode($this->response400());
             }
         } else {
+            if ($this->opcode == self::OPCODE_PING) {
+                $pong = $this->pong();
+                return [2, $pong];
+            }
             $dataLen = strlen($data);
             $firstByte = 0x80 | self::OPCODE_FRAME;
             $secondByte = 0x00 | $dataLen;
@@ -187,7 +193,7 @@ class WebSocket implements Protocols {
     public function decode($data = '') {
         // TODO: Implement decode() method.
         if ($this->webSocketHandShakeStatus == self::WEBSOCKET_START_STATUS) {
-            $this->_http->decode($data);
+            return $this->_http->decode($data);
         } else {
             $data = substr($data, $this->headerLen);
             //解码 和掩码进行异或运算
@@ -263,7 +269,8 @@ class WebSocket implements Protocols {
         }
     }
 
-    public function ping(): string {
-        return chr(0x0F&self::OPCODE_PING).chr(0x00);
+
+    public function pong(): string {
+        return chr(0x80|self::OPCODE_PONG).chr(0x00);
     }
 }

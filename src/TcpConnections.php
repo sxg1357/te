@@ -8,7 +8,6 @@
 
 namespace Socket\Ms;
 
-use phpseclib3\Math\BigInteger\Engines\PHP;
 use Socket\Ms\Event\Event;
 use Socket\Ms\Protocols\WebSocket;
 
@@ -128,17 +127,22 @@ class TcpConnections {
                 }
                 break;
             case 'ws':
-                if ($this->protocol->webSocketHandShakeStatus == $this->protocol::WEBSOCKET_START_STATUS) {
+                if ($this->protocol->webSocketHandShakeStatus == WebSocket::WEBSOCKET_START_STATUS) {
                     //握手成功
                     if ($this->send()) {
-                        if ($this->protocol->webSocketHandShakeStatus == $this->protocol::WEBSOCKET_RUNNING_STATUS) {
+                        if ($this->protocol->webSocketHandShakeStatus == WebSocket::WEBSOCKET_RUNNING_STATUS) {
                             $this->_server->eventCallBak("open", [$this]);
                         } else {
                             $this->close();
                         }
                     }
-                } else if ($this->protocol->webSocketHandShakeStatus == $this->protocol::WEBSOCKET_RUNNING_STATUS) {
-                    $this->_server->eventCallBak("message", [$this, $message]);
+                } else if ($this->protocol->webSocketHandShakeStatus == WebSocket::WEBSOCKET_RUNNING_STATUS) {
+                    if ($this->protocol->opcode == WebSocket::OPCODE_PING) {
+                        $this->send();
+                    }
+                    if ($message) {
+                        $this->_server->eventCallBak("message", [$this, $message]);
+                    }
                 } else {
                     $this->close();
                 }
@@ -197,8 +201,7 @@ class TcpConnections {
         return $this->_sendLen > 0;
     }
 
-    public function send($data = '')
-    {
+    public function send($data = '') {
         if (!is_resource($this->_socketFd) || feof($this->_socketFd)) {
             $this->close();
             return false;
